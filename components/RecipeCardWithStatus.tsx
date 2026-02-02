@@ -2,8 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { Recipe, RootStackParamList } from "@/types";
-import StatusBadge from "./StatusBadge";
+import type { Recipe, Ingredient, RootStackParamList } from "@/types";
+import StatusBadge from "@/components/StatusBadge";
 import api from "@/services/api";
 
 interface RecipeCardWithStatusProps {
@@ -37,6 +37,33 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
         ]);
     };
 
+    // type checking untuk bahan
+    const getIngredientsDisplay = (): string => {
+        if (!recipe.ingredients) return "";
+
+        // string
+        if (typeof recipe.ingredients === "string") {
+            return recipe.ingredients;
+        }
+
+        // array
+        if (Array.isArray(recipe.ingredients)) {
+            return recipe.ingredients
+                .map((ing: Ingredient) => {
+                    if (ing.quantity && ing.unit) {
+                        return `${ing.quantity} ${ing.unit} ${ing.name}`;
+                    } else if (ing.quantity) {
+                        return `${ing.quantity} ${ing.name}`;
+                    } else {
+                        return ing.name;
+                    }
+                })
+                .join(", ");
+        }
+
+        return "";
+    };
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString("id-ID", {
@@ -66,7 +93,7 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
             </View>
 
             <Text style={styles.ingredients} numberOfLines={2}>
-                {recipe.ingredients}
+                {getIngredientsDisplay()}
             </Text>
 
             <Text style={styles.date}>{formatDate(recipe.created_at)}</Text>

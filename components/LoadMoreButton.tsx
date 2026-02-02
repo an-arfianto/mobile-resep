@@ -14,15 +14,13 @@ const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
     totalItems,
     onLoadMore,
     loading = false,
-    itemsPerPage = 10,
 }) => {
     const hasMore = currentItems < totalItems;
-    const remaining = totalItems - currentItems;
 
     if (!hasMore) {
         return (
             <View style={styles.endContainer}>
-                <Text style={styles.endText}>✓ Showing all {totalItems} items</Text>
+                <Text style={styles.endText}>✓ {totalItems} item</Text>
             </View>
         );
     }
@@ -30,18 +28,13 @@ const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
     return (
         <View style={styles.container}>
             <Text style={styles.infoText}>
-                Showing {currentItems} of {totalItems}
+                {currentItems} dari {totalItems}
             </Text>
             <TouchableOpacity style={styles.button} onPress={onLoadMore} disabled={loading}>
                 {loading ? (
                     <ActivityIndicator color="#fff" />
                 ) : (
-                    <>
-                        <Text style={styles.buttonText}>Load More</Text>
-                        <Text style={styles.remainingText}>
-                            ({remaining > itemsPerPage ? itemsPerPage : remaining} more)
-                        </Text>
-                    </>
+                    <Text style={styles.buttonText}>Load More</Text>
                 )}
             </TouchableOpacity>
         </View>
@@ -60,7 +53,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     button: {
-        backgroundColor: "#ef4444",
+        backgroundColor: "#00796b",
         paddingVertical: 12,
         paddingHorizontal: 32,
         borderRadius: 8,
@@ -74,11 +67,6 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 15,
         fontWeight: "600",
-    },
-    remainingText: {
-        color: "#fee2e2",
-        fontSize: 13,
-        fontWeight: "500",
     },
     endContainer: {
         alignItems: "center",

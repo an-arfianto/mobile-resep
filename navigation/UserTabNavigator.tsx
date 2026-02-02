@@ -97,7 +97,7 @@ const UserTabNavigator: React.FC = () => {
                 name="Search"
                 component={SearchStack}
                 options={{
-                    tabBarLabel: "Search",
+                    tabBarLabel: "Cari",
                     tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🔍</Text>,
                 }}
             />
@@ -105,7 +105,7 @@ const UserTabNavigator: React.FC = () => {
                 name="MyRecipes"
                 component={MyRecipesStack}
                 options={{
-                    tabBarLabel: "My Recipes",
+                    tabBarLabel: "Resep Saya",
                     tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📖</Text>,
                 }}
             />
@@ -113,7 +113,7 @@ const UserTabNavigator: React.FC = () => {
                 name="Profile"
                 component={ProfileStack}
                 options={{
-                    tabBarLabel: "Profile",
+                    tabBarLabel: "Profil",
                     tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
                 }}
             />

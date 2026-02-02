@@ -17,7 +17,7 @@ const Stack = createNativeStackNavigator();
 const AppNavigator: React.FC = () => {
     const { isAuthenticated, user } = useAuth();
     const isAdmin = user?.role_id === 1;
-    const isModerator = user?.role_id === 3;
+    const isModerator = user?.role_id === 2;
 
     // Without authentication - show login/register
     if (!isAuthenticated) {

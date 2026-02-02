@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import {
-    View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    ScrollView,
-    StyleSheet,
-    ActivityIndicator,
+    View,
 } from "react-native";
 import RecipeCard from "@/components/RecipeCard";
 import api from "@/services/api";
-import type { Recipe, SearchCriteria, SearchResponse } from "@/types";
+import type { SearchCriteria, SearchResponse } from "@/types";
 import Header from "../components/Header";
 
 const SearchScreen: React.FC = () => {

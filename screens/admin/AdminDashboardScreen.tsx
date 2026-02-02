@@ -151,7 +151,7 @@ const AdminDashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: "#f9f5d7",
     },
     scrollContainer: {
         flex: 1,

@@ -104,6 +104,15 @@ const AdminRecipesScreen: React.FC = () => {
         );
     }
 
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("id-ID", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    };
+
     const displayedRecipes = recipes.slice(0, displayCount);
 
     return (
@@ -147,7 +156,7 @@ const AdminRecipesScreen: React.FC = () => {
                                     </Text>
                                 )}
                                 <Text style={styles.dateText}>
-                                    Dibuat: {new Date(recipe.created_at).toLocaleDateString()}
+                                    Dibuat: {formatDate(recipe.created_at)}
                                 </Text>
                                 <View style={styles.buttonRow}>
                                     <TouchableOpacity
@@ -174,7 +183,6 @@ const AdminRecipesScreen: React.FC = () => {
                             currentItems={displayCount}
                             totalItems={recipes.length}
                             onLoadMore={handleLoadMore}
-                            itemsPerPage={itemsPerPage}
                         />
                     </>
                 )}

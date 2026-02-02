@@ -23,7 +23,6 @@ const ProfileScreen: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"info" | "settings">("info");
 
-    // Edit state
     const [editingUsername, setEditingUsername] = useState(false);
     const [newUsername, setNewUsername] = useState("");
     const [usernameLoading, setUsernameLoading] = useState(false);
@@ -63,15 +62,15 @@ const ProfileScreen: React.FC = () => {
 
     const handleLogout = () => {
         Alert.alert(
-            "Logout",
-            "Are you sure you want to logout?",
+            "Keluar",
+            "Anda yakin ingin keluar?",
             [
                 {
-                    text: "Cancel",
+                    text: "Batal",
                     style: "cancel",
                 },
                 {
-                    text: "Logout",
+                    text: "Keluar",
                     style: "destructive",
                     onPress: async () => {
                         await logout();
@@ -84,7 +83,7 @@ const ProfileScreen: React.FC = () => {
 
     const handleUpdateUsername = async () => {
         if (!newUsername || newUsername.trim().length < 3) {
-            Alert.alert("Error", "Username minimal 3 huruf");
+            Alert.alert("Eror", "Username minimal 3 huruf");
             return;
         }
 
@@ -111,17 +110,17 @@ const ProfileScreen: React.FC = () => {
 
     const handleUpdatePassword = async () => {
         if (!currentPassword || !newPassword) {
-            Alert.alert("Error", "Please fill all password fields");
+            Alert.alert("Error", "Isi semua kolom password yang tersedia");
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            Alert.alert("Error", "Passwords do not match");
+            Alert.alert("Error", "Passwords tidak cocok");
             return;
         }
 
         if (newPassword.length < 6) {
-            Alert.alert("Error", "Password must be at least 6 characters");
+            Alert.alert("Error", "Password minimal 6 huruf");
             return;
         }
 
@@ -142,12 +141,12 @@ const ProfileScreen: React.FC = () => {
 
     const getRoleBadge = () => {
         if (profile?.role_id === 1) {
-            return { label: "Admin", bg: "#fee2e2", text: "#991b1b" };
+            return { label: "Admin", bg: "#fee2e2", text: "#b91c1c" };
         }
-        if (profile?.role_id === 3) {
-            return { label: "Moderator", bg: "#dbeafe", text: "#1e40af" };
+        if (profile?.role_id === 2) {
+            return { label: "Moderator", bg: "#f3e8ff", text: "#7c3ead" };
         }
-        return { label: "User", bg: "#f3f4f6", text: "#374151" };
+        return { label: "User", bg: "#dbeafe", text: "#1e40af" };
     };
 
     const formatDate = (dateString: string) => {
@@ -164,7 +163,7 @@ const ProfileScreen: React.FC = () => {
             <View style={styles.container}>
                 <Header title="My Profile" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#ef4444" />
+                    <ActivityIndicator size="large" color="#00796b" />
                 </View>
             </View>
         );
@@ -190,7 +189,6 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.container}>
             <Header title="Profil Saya" />
 
-            {/* Tabs */}
             <View style={styles.tabContainer}>
                 <TouchableOpacity
                     style={[styles.tab, activeTab === "info" && styles.tabActive]}
@@ -224,7 +222,6 @@ const ProfileScreen: React.FC = () => {
                     />
                 }
             >
-                {/* Profile Info Tab */}
                 {activeTab === "info" && (
                     <>
                         <View style={styles.profileHeader}>
@@ -258,7 +255,7 @@ const ProfileScreen: React.FC = () => {
                                         {profile?.approved_count || 0}
                                     </Text>
                                     <Text style={styles.statLabel}>
-                                        {profile?.role_id === 3
+                                        {profile?.role_id === 2
                                             ? "Saya Setujui"
                                             : "Telah Disetujui"}
                                     </Text>
@@ -274,7 +271,7 @@ const ProfileScreen: React.FC = () => {
                                         {profile?.rejected_count || 0}
                                     </Text>
                                     <Text style={styles.statLabel}>
-                                        {profile?.role_id === 3 ? "Saya Tolak" : "Telah Ditolak"}
+                                        {profile?.role_id === 2 ? "Saya Tolak" : "Telah Ditolak"}
                                     </Text>
                                 </View>
                             </View>
@@ -287,12 +284,11 @@ const ProfileScreen: React.FC = () => {
                             activeOpacity={0.8}
                         >
                             <Text style={styles.logoutIcon}>🚪</Text>
-                            <Text style={styles.logoutButtonText}>Logout</Text>
+                            <Text style={styles.logoutButtonText}>Keluar</Text>
                         </TouchableOpacity>
                     </>
                 )}
 
-                {/* Account Settings Tab */}
                 {activeTab === "settings" && (
                     <>
                         <View style={styles.card}>
@@ -311,7 +307,7 @@ const ProfileScreen: React.FC = () => {
                                         style={styles.input}
                                         value={newUsername}
                                         onChangeText={setNewUsername}
-                                        placeholder="Enter new username"
+                                        placeholder="Masukan username baru"
                                         editable={!usernameLoading}
                                         autoCapitalize="none"
                                     />
@@ -324,7 +320,7 @@ const ProfileScreen: React.FC = () => {
                                             }}
                                             disabled={usernameLoading}
                                         >
-                                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                                            <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.saveButton}
@@ -334,7 +330,7 @@ const ProfileScreen: React.FC = () => {
                                             {usernameLoading ? (
                                                 <ActivityIndicator color="#fff" />
                                             ) : (
-                                                <Text style={styles.saveButtonText}>Save</Text>
+                                                <Text style={styles.saveButtonText}>Simpan</Text>
                                             )}
                                         </TouchableOpacity>
                                     </View>
@@ -360,7 +356,7 @@ const ProfileScreen: React.FC = () => {
                                         style={styles.input}
                                         value={currentPassword}
                                         onChangeText={setCurrentPassword}
-                                        placeholder="Current password"
+                                        placeholder="Password anda sekarang"
                                         secureTextEntry
                                         editable={!passwordLoading}
                                         autoCapitalize="none"
@@ -369,7 +365,7 @@ const ProfileScreen: React.FC = () => {
                                         style={styles.input}
                                         value={newPassword}
                                         onChangeText={setNewPassword}
-                                        placeholder="New password"
+                                        placeholder="Password baru"
                                         secureTextEntry
                                         editable={!passwordLoading}
                                         autoCapitalize="none"
@@ -378,7 +374,7 @@ const ProfileScreen: React.FC = () => {
                                         style={styles.input}
                                         value={confirmPassword}
                                         onChangeText={setConfirmPassword}
-                                        placeholder="Confirm new password"
+                                        placeholder="Konfirmasi password baru"
                                         secureTextEntry
                                         editable={!passwordLoading}
                                         autoCapitalize="none"
@@ -394,7 +390,7 @@ const ProfileScreen: React.FC = () => {
                                             }}
                                             disabled={passwordLoading}
                                         >
-                                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                                            <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.saveButton}
@@ -404,7 +400,7 @@ const ProfileScreen: React.FC = () => {
                                             {passwordLoading ? (
                                                 <ActivityIndicator color="#fff" />
                                             ) : (
-                                                <Text style={styles.saveButtonText}>Save</Text>
+                                                <Text style={styles.saveButtonText}>Simpan</Text>
                                             )}
                                         </TouchableOpacity>
                                     </View>
@@ -414,14 +410,13 @@ const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
-                        {/* Logout Button in Settings Tab */}
                         <TouchableOpacity
                             style={styles.logoutButton}
                             onPress={handleLogout}
                             activeOpacity={0.8}
                         >
                             <Text style={styles.logoutIcon}>🚪</Text>
-                            <Text style={styles.logoutButtonText}>Logout</Text>
+                            <Text style={styles.logoutButtonText}>Keluar</Text>
                         </TouchableOpacity>
                     </>
                 )}
@@ -462,7 +457,7 @@ const styles = StyleSheet.create({
         borderBottomColor: "transparent",
     },
     tabActive: {
-        borderBottomColor: "#ef4444",
+        borderBottomColor: "#00796b",
     },
     tabText: {
         fontSize: 14,
@@ -470,7 +465,7 @@ const styles = StyleSheet.create({
         color: "#6b7280",
     },
     tabTextActive: {
-        color: "#ef4444",
+        color: "#00796b",
     },
     profileHeader: {
         backgroundColor: "#fff",
