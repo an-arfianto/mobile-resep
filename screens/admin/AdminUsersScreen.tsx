@@ -1,18 +1,19 @@
-import React, { useState, useCallback, useMemo } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    ActivityIndicator,
-    RefreshControl,
-    TouchableOpacity,
-    Alert,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { colors } from "@/assets/color";
 import Header from "@/components/Header";
 import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type SortColumn = "created_at" | "role_id";
 type SortDirection = "asc" | "desc";
@@ -22,8 +23,8 @@ const AdminUsersScreen: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [displayCount, setDisplayCount] = useState(15);
-    const itemsPerPage = 2;
+    const [displayCount, setDisplayCount] = useState(10);
+    const itemsPerPage = 10;
 
     // Sorting state
     const [sortColumn, setSortColumn] = useState<SortColumn>("created_at");
@@ -35,7 +36,7 @@ const AdminUsersScreen: React.FC = () => {
             setError(null);
             const response = await api.admin.getUsers();
             setUsers(response.data);
-            setDisplayCount(2);
+            setDisplayCount(10);
         } catch (err: any) {
             console.error("Error", err);
             setError(err.message || "User tidak tersedia");
@@ -147,32 +148,22 @@ const AdminUsersScreen: React.FC = () => {
                 style: "destructive",
                 onPress: () => {
                     if (recipeCount > 0) {
-                        Alert.alert(
-                            "Konfirmasi",
-                            `Hapus "${username}" dan ${recipeCount} resep mereka?`,
-                            [
-                                { text: "Batal", style: "cancel" },
-                                {
-                                    text: "Hapus",
-                                    style: "destructive",
-                                    onPress: async () => {
-                                        try {
-                                            await api.admin.deleteUser(userId);
-                                            setUsers(users.filter((u) => u.id !== userId));
-                                            Alert.alert(
-                                                "Sukses",
-                                                `User "${username}" berhasil dihapus`,
-                                            );
-                                        } catch (err: any) {
-                                            Alert.alert(
-                                                "Eror",
-                                                err.message || "User gagal dihapus",
-                                            );
-                                        }
-                                    },
+                        Alert.alert("Konfirmasi", `Hapus "${username}" dan ${recipeCount} resep mereka?`, [
+                            { text: "Batal", style: "cancel" },
+                            {
+                                text: "Hapus",
+                                style: "destructive",
+                                onPress: async () => {
+                                    try {
+                                        await api.admin.deleteUser(userId);
+                                        setUsers(users.filter((u) => u.id !== userId));
+                                        Alert.alert("Sukses", `User "${username}" berhasil dihapus`);
+                                    } catch (err: any) {
+                                        Alert.alert("Eror", err.message || "User gagal dihapus");
+                                    }
                                 },
-                            ],
-                        );
+                            },
+                        ]);
                     } else {
                         performDelete();
                     }
@@ -213,7 +204,7 @@ const AdminUsersScreen: React.FC = () => {
             <View style={styles.container}>
                 <Header title="Kelola User" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#00796b" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             </View>
         );
@@ -254,8 +245,8 @@ const AdminUsersScreen: React.FC = () => {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#00796b"]}
-                        tintColor="#00796b"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -266,34 +257,20 @@ const AdminUsersScreen: React.FC = () => {
                 <View style={styles.sortContainer}>
                     <Text style={styles.sortLabel}>Urutkan:</Text>
                     <TouchableOpacity
-                        style={[
-                            styles.sortButton,
-                            sortColumn === "created_at" && styles.sortButtonActive,
-                        ]}
+                        style={[styles.sortButton, sortColumn === "created_at" && styles.sortButtonActive]}
                         onPress={() => handleSort("created_at")}
                     >
                         <Text
-                            style={[
-                                styles.sortButtonText,
-                                sortColumn === "created_at" && styles.sortButtonTextActive,
-                            ]}
+                            style={[styles.sortButtonText, sortColumn === "created_at" && styles.sortButtonTextActive]}
                         >
                             Bergabung {getSortIcon("created_at")}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[
-                            styles.sortButton,
-                            sortColumn === "role_id" && styles.sortButtonActive,
-                        ]}
+                        style={[styles.sortButton, sortColumn === "role_id" && styles.sortButtonActive]}
                         onPress={() => handleSort("role_id")}
                     >
-                        <Text
-                            style={[
-                                styles.sortButtonText,
-                                sortColumn === "role_id" && styles.sortButtonTextActive,
-                            ]}
-                        >
+                        <Text style={[styles.sortButtonText, sortColumn === "role_id" && styles.sortButtonTextActive]}>
                             Role {getSortIcon("role_id")}
                         </Text>
                     </TouchableOpacity>
@@ -315,9 +292,7 @@ const AdminUsersScreen: React.FC = () => {
                             </View>
                             <View style={styles.userDetails}>
                                 <Text style={styles.detailText}>Resep: {user.recipe_count}</Text>
-                                <Text style={styles.detailText}>
-                                    Bergabung: {formatDate(user.created_at)}
-                                </Text>
+                                <Text style={styles.detailText}>Bergabung: {formatDate(user.created_at)}</Text>
                             </View>
 
                             {!isAdmin && (
@@ -342,9 +317,7 @@ const AdminUsersScreen: React.FC = () => {
 
                                     <TouchableOpacity
                                         style={styles.deleteButton}
-                                        onPress={() =>
-                                            deleteUser(user.id, user.username, user.recipe_count)
-                                        }
+                                        onPress={() => deleteUser(user.id, user.username, user.recipe_count)}
                                     >
                                         <Text style={styles.deleteButtonText}>Hapus</Text>
                                     </TouchableOpacity>
@@ -373,7 +346,7 @@ const AdminUsersScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9f5d7",
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flex: 1,
@@ -388,13 +361,13 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     headerInfo: {
-        backgroundColor: "#dbeafe",
+        backgroundColor: colors.successSoft,
         padding: 12,
         borderRadius: 8,
         marginBottom: 12,
     },
     totalText: {
-        color: "#1e40af",
+        color: colors.success,
         fontSize: 14,
         fontWeight: "600",
         textAlign: "center",
@@ -409,37 +382,37 @@ const styles = StyleSheet.create({
     sortLabel: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#374151",
+        color: colors.textPrimary,
     },
     sortButton: {
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: "#e5e7eb",
+        borderColor: colors.border,
     },
     sortButtonActive: {
-        backgroundColor: "#00796b",
-        borderColor: "#00796b",
+        backgroundColor: colors.primary,
+        borderColor: colors.border,
     },
     sortButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#6b7280",
+        color: colors.textPrimary,
     },
     sortButtonTextActive: {
-        color: "#fff",
+        color: colors.textInverse,
     },
     userCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
+        shadowRadius: 3,
         elevation: 2,
     },
     userHeader: {
@@ -451,7 +424,7 @@ const styles = StyleSheet.create({
     username: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         flex: 1,
     },
     roleBadge: {
@@ -460,26 +433,26 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     adminBadge: {
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
     },
     modBadge: {
-        backgroundColor: "#f3e8ff",
+        backgroundColor: colors.secondarySoft,
     },
     userBadge: {
-        backgroundColor: "#dbeafe",
+        backgroundColor: colors.primarySoft,
     },
     roleText: {
         fontSize: 12,
         fontWeight: "bold",
     },
     adminText: {
-        color: "#b91c1c",
+        color: colors.error,
     },
     modText: {
-        color: "#7c3aed",
+        color: colors.secondary,
     },
     userText: {
-        color: "#1e40af",
+        color: colors.primary,
     },
     userDetails: {
         gap: 4,
@@ -487,7 +460,7 @@ const styles = StyleSheet.create({
     },
     detailText: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     actionButtons: {
         flexDirection: "row",
@@ -496,66 +469,66 @@ const styles = StyleSheet.create({
     },
     promoteButton: {
         flex: 1,
-        backgroundColor: "#dbeafe",
+        backgroundColor: colors.successSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     promoteButtonText: {
-        color: "#1e40af",
+        color: colors.success,
         fontWeight: "600",
         fontSize: 14,
     },
     demoteButton: {
         flex: 1,
-        backgroundColor: "#fed7aa",
+        backgroundColor: colors.warningSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     demoteButtonText: {
-        color: "#9a3412",
+        color: colors.warning,
         fontWeight: "600",
         fontSize: 14,
     },
     deleteButton: {
         flex: 1,
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     deleteButtonText: {
-        color: "#dc2626",
+        color: colors.error,
         fontWeight: "600",
         fontSize: 14,
     },
     protectedBadge: {
         marginTop: 8,
         padding: 8,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.overlay,
         borderRadius: 8,
         alignItems: "center",
     },
     protectedText: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textMuted,
         fontStyle: "italic",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: "#dc2626",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },

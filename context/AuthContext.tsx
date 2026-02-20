@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "@/services/api";
-import type { User, LoginCredentials, RegisterData, ApiError } from "@/types";
+import type { ApiError, LoginCredentials, RegisterData, User } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
     user: User | null;
@@ -86,17 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return (
         <AuthContext.Provider
-            value={{
-                user,
-                token,
-                loading,
-                error,
-                isAuthenticated,
-                login,
-                register,
-                logout,
-                checkAuth,
-            }}
+            value={{ user, token, loading, error, isAuthenticated, login, register, logout, checkAuth }}
         >
             {children}
         </AuthContext.Provider>

@@ -1,21 +1,21 @@
+import { colors } from "@/assets/color";
+import api from "@/services/api";
+import type { Ingredient, RootStackParamList } from "@/types";
+import { Picker } from "@react-native-picker/picker";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
-    View,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    Alert,
+    View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Picker } from "@react-native-picker/picker";
-import api from "@/services/api";
-import type { RootStackParamList, Ingredient } from "@/types";
-import Header from "@/components/Header";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -34,6 +34,8 @@ const UNITS = [
     { label: "batang", value: "batang" },
     { label: "lembar", value: "lembar" },
     { label: "potong", value: "potong" },
+    { label: "jumput", value: "jumput" },
+    { label: "secukupnya", value: "secukupnya" },
 ];
 
 const CreateRecipeScreen: React.FC = () => {
@@ -43,9 +45,7 @@ const CreateRecipeScreen: React.FC = () => {
     const [category, setCategory] = useState<string>("");
     const [description, setDescription] = useState<string>("");
     const [instructions, setInstructions] = useState<string>("");
-    const [ingredients, setIngredients] = useState<Ingredient[]>([
-        { name: "", quantity: null, unit: "" },
-    ]);
+    const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: "", quantity: null, unit: "" }]);
 
     const addIngredient = () => {
         setIngredients([...ingredients, { name: "", quantity: null, unit: "" }]);
@@ -101,10 +101,7 @@ const CreateRecipeScreen: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
             <ScrollView style={styles.scrollView}>
                 <View style={styles.card}>
                     <Text style={styles.title}>Tambah Resep Baru</Text>
@@ -115,16 +112,12 @@ const CreateRecipeScreen: React.FC = () => {
                         value={name}
                         onChangeText={setName}
                         placeholder="e.g., Ayam bakar, Nasi Goreng..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor={colors.textMuted}
                     />
 
                     <Text style={styles.label}>Kategori *</Text>
                     <View style={styles.pickerContainer}>
-                        <Picker
-                            selectedValue={category}
-                            onValueChange={setCategory}
-                            style={styles.picker}
-                        >
+                        <Picker selectedValue={category} onValueChange={setCategory} style={styles.picker}>
                             <Picker.Item label="Pilih Kategori" value="" />
                             <Picker.Item label="Appetizer" value="Appetizer" />
                             <Picker.Item label="Main Course" value="Main Course" />
@@ -140,7 +133,7 @@ const CreateRecipeScreen: React.FC = () => {
                         value={description}
                         onChangeText={setDescription}
                         placeholder="Jelaskan deskripsi resep"
-                        placeholderTextColor="#999"
+                        placeholderTextColor={colors.textMuted}
                         multiline
                         numberOfLines={3}
                     />
@@ -151,27 +144,19 @@ const CreateRecipeScreen: React.FC = () => {
                             <TextInput
                                 style={[styles.input, styles.qtyInput]}
                                 value={ingredient.quantity?.toString() || ""}
-                                onChangeText={(text) =>
-                                    updateIngredient(index, "quantity", parseInt(text) || null)
-                                }
+                                onChangeText={(text) => updateIngredient(index, "quantity", text)}
                                 placeholder="Jumlah"
-                                placeholderTextColor="#999"
-                                keyboardType="number-pad"
+                                placeholderTextColor={colors.textMuted}
+                                keyboardType="decimal-pad"
                             />
                             <View style={[styles.pickerContainer, styles.unitPicker]}>
                                 <Picker
                                     selectedValue={ingredient.unit || ""}
-                                    onValueChange={(value) =>
-                                        updateIngredient(index, "unit", value)
-                                    }
+                                    onValueChange={(value) => updateIngredient(index, "unit", value)}
                                     style={styles.picker}
                                 >
                                     {UNITS.map((unit) => (
-                                        <Picker.Item
-                                            key={unit.value}
-                                            label={unit.label}
-                                            value={unit.value}
-                                        />
+                                        <Picker.Item key={unit.value} label={unit.label} value={unit.value} />
                                     ))}
                                 </Picker>
                             </View>
@@ -180,13 +165,10 @@ const CreateRecipeScreen: React.FC = () => {
                                 value={ingredient.name}
                                 onChangeText={(text) => updateIngredient(index, "name", text)}
                                 placeholder="Nama Bahan"
-                                placeholderTextColor="#999"
+                                placeholderTextColor={colors.textMuted}
                             />
                             {ingredients.length > 1 && (
-                                <TouchableOpacity
-                                    style={styles.removeButton}
-                                    onPress={() => removeIngredient(index)}
-                                >
+                                <TouchableOpacity style={styles.removeButton} onPress={() => removeIngredient(index)}>
                                     <Text style={styles.removeButtonText}>✕</Text>
                                 </TouchableOpacity>
                             )}
@@ -203,7 +185,7 @@ const CreateRecipeScreen: React.FC = () => {
                         value={instructions}
                         onChangeText={setInstructions}
                         placeholder="Jelaskan instuksi pembuatannya (e.g., 1. 2. 3. dst)..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor={colors.textMuted}
                         multiline
                         numberOfLines={6}
                     />
@@ -220,9 +202,7 @@ const CreateRecipeScreen: React.FC = () => {
                             onPress={handleSubmit}
                             disabled={loading}
                         >
-                            <Text style={styles.submitButtonText}>
-                                {loading ? "Mohon Tunggu..." : "Tambah Resep"}
-                            </Text>
+                            <Text style={styles.submitButtonText}>{loading ? "Mohon Tunggu..." : "Tambah Resep"}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -234,13 +214,13 @@ const CreateRecipeScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     scrollView: {
         flex: 1,
     },
     card: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         margin: 16,
         padding: 12,
         borderRadius: 12,
@@ -248,23 +228,24 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 20,
     },
     label: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#374151",
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     input: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
+        borderColor: colors.border,
         borderRadius: 8,
-        padding: 16,
+        padding: 10,
         fontSize: 14,
         marginBottom: 16,
-        color: "#111",
+        color: colors.textPrimary,
+        backgroundColor: colors.inputBackground,
     },
     textArea: {
         minHeight: 80,
@@ -272,13 +253,15 @@ const styles = StyleSheet.create({
     },
     pickerContainer: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
+        borderColor: colors.border,
         borderRadius: 8,
         marginBottom: 16,
+        backgroundColor: colors.inputBackground,
         overflow: "hidden",
     },
     picker: {
         height: 50,
+        color: colors.textPrimary,
     },
     ingredientRow: {
         flexDirection: "row",
@@ -299,7 +282,7 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     removeButton: {
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
         width: 36,
         height: 36,
         borderRadius: 8,
@@ -307,19 +290,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     removeButtonText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 18,
         fontWeight: "bold",
     },
     addButton: {
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.successSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
         marginBottom: 16,
     },
     addButtonText: {
-        color: "#374151",
+        color: colors.success,
         fontWeight: "600",
     },
     buttonContainer: {
@@ -334,18 +317,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     cancelButton: {
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.overlay,
     },
     cancelButtonText: {
-        color: "#374151",
+        color: colors.textPrimary,
         fontWeight: "600",
         fontSize: 16,
     },
     submitButton: {
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.success,
     },
     submitButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "bold",
         fontSize: 16,
     },

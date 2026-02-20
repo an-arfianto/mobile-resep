@@ -1,64 +1,60 @@
-// navigation/ModeratorTabNavigator.tsx - Bottom tabs for moderator
-import React from "react";
-import { Text } from "react-native";
+import { colors } from "@/assets/color";
+import Feather from "@expo/vector-icons/Feather";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-// Moderator Screens
+import CreateRecipeScreen from "@/screens/CreateRecipeScreen";
+import EditRecipeScreen from "@/screens/EditRecipeScreen";
+import HomeScreen from "@/screens/HomeScreen";
+import MyRecipesScreen from "@/screens/MyRecipesScreen";
+import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
+import SearchScreen from "@/screens/SearchScreen";
+
+import ModerationAllScreen from "@/screens/moderation/ModerationAllScreen";
 import ModerationDashboardScreen from "@/screens/moderation/ModerationDashboardScreen";
 import ModerationPendingScreen from "@/screens/moderation/ModerationPendingScreen";
 import ModerationReviewedScreen from "@/screens/moderation/ModerationReviewedScreen";
-import ModerationAllScreen from "@/screens/moderation/ModerationAllScreen";
-import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Stack navigator for Dashboard tab
-const DashboardStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+const HomeStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="HomeMain" component={HomeScreen} />
+        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+    </Stack.Navigator>
+);
+
+const SearchStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="SearchMain" component={SearchScreen} />
+        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+    </Stack.Navigator>
+);
+
+const MyRecipesStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="MyRecipesMain" component={MyRecipesScreen} />
+        <Stack.Screen name="CreateRecipe" component={CreateRecipeScreen} />
+        <Stack.Screen name="EditRecipe" component={EditRecipeScreen} />
+        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
+    </Stack.Navigator>
+);
+
+const ModerationStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="ModerationDashboardMain" component={ModerationDashboardScreen} />
+        <Stack.Screen name="ModerationPending" component={ModerationPendingScreen} />
+        <Stack.Screen name="ModerationReviewed" component={ModerationReviewedScreen} />
         <Stack.Screen name="ModerationAll" component={ModerationAllScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for Pending tab
-const PendingStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
-        <Stack.Screen name="ModerationPendingMain" component={ModerationPendingScreen} />
-        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-    </Stack.Navigator>
-);
-
-// Stack navigator for Reviewed tab
-const ReviewedStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
-        <Stack.Screen name="ModerationReviewedMain" component={ModerationReviewedScreen} />
-        <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-    </Stack.Navigator>
-);
-
-// Stack navigator for Profile tab
 const ProfileStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     </Stack.Navigator>
 );
@@ -68,15 +64,16 @@ const ModeratorTabNavigator: React.FC = () => {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: "#3b82f6",
-                tabBarInactiveTintColor: "#6b7280",
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textPrimary,
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: "600",
                 },
                 tabBarStyle: {
+                    backgroundColor: colors.surface,
                     borderTopWidth: 1,
-                    borderTopColor: "#e5e7eb",
+                    borderTopColor: colors.divider,
                     paddingTop: 8,
                     paddingBottom: 8,
                     height: 60,
@@ -84,35 +81,43 @@ const ModeratorTabNavigator: React.FC = () => {
             }}
         >
             <Tab.Screen
-                name="ModerationDashboard"
-                component={DashboardStack}
+                name="Home"
+                component={HomeStack}
                 options={{
                     tabBarLabel: "Home",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="home" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
-                name="ModerationPending"
-                component={PendingStack}
+                name="Search"
+                component={SearchStack}
                 options={{
-                    tabBarLabel: "Pending",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>⏳</Text>,
+                    tabBarLabel: "Cari",
+                    tabBarIcon: ({ color }) => <Feather name="search" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
-                name="ModerationReviewed"
-                component={ReviewedStack}
+                name="MyRecipes"
+                component={MyRecipesStack}
                 options={{
-                    tabBarLabel: "Reviewed",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📋</Text>,
+                    tabBarLabel: "Resep Saya",
+                    tabBarIcon: ({ color }) => <Feather name="book" size={24} color={color} />,
+                }}
+            />
+            <Tab.Screen
+                name="ModerationDashboard"
+                component={ModerationStack}
+                options={{
+                    tabBarLabel: "Moderasi",
+                    tabBarIcon: ({ color }) => <Feather name="shield" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
                 name="Profile"
                 component={ProfileStack}
                 options={{
-                    tabBarLabel: "Profile",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+                    tabBarLabel: "Profil",
+                    tabBarIcon: ({ color }) => <Feather name="user" size={24} color={color} />,
                 }}
             />
         </Tab.Navigator>

@@ -8,7 +8,7 @@ export interface User {
 
 export interface Ingredient {
     name: string;
-    quantity?: number | null;
+    quantity?: string | null;
     unit?: string | null;
     display?: string;
 }
@@ -25,7 +25,7 @@ export interface Recipe {
     user_id?: number;
     rejection_reason?: string;
     matched_count?: number;
-    created_at?: string;
+    created_at: string;
     updated_at?: string;
 }
 

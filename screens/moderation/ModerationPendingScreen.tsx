@@ -1,21 +1,25 @@
-import React, { useState, useCallback } from "react";
-import {
-    View,
-    Text,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-    Modal,
-    TextInput,
-    Alert,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import type { ModerationRecipe } from "@/types";
+import { colors } from "@/assets/color";
+import Header from "@/components/Header";
 import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
-import Header from "@/components/Header";
+import type { ModerationRecipe } from "@/types";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ModerationPendingScreen: React.FC = () => {
     const [recipes, setRecipes] = useState<ModerationRecipe[]>([]);
@@ -23,17 +27,14 @@ const ModerationPendingScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Pagination
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
-    // Reject modal state
     const [rejectModalVisible, setRejectModalVisible] = useState(false);
     const [selectedRecipeId, setSelectedRecipeId] = useState<number | null>(null);
     const [rejectionReason, setRejectionReason] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
 
-    // Detail modal state
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState<ModerationRecipe | null>(null);
 
@@ -43,7 +44,7 @@ const ModerationPendingScreen: React.FC = () => {
             setError(null);
             const response = await api.moderation.getPending();
             setRecipes(response.data);
-            setDisplayCount(10); // Reset
+            setDisplayCount(10);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -83,7 +84,7 @@ const ModerationPendingScreen: React.FC = () => {
                         await api.moderation.approve(recipeId);
                         setRecipes(recipes.filter((r) => r.id !== recipeId));
                         setDetailModalVisible(false);
-                        Alert.alert("Success", "Resep telah disetujui!");
+                        Alert.alert("Sukses", "Resep telah disetujui!");
                     } catch (err: any) {
                         Alert.alert("Error", err.message);
                     } finally {
@@ -109,7 +110,7 @@ const ModerationPendingScreen: React.FC = () => {
             setRecipes(recipes.filter((r) => r.id !== selectedRecipeId));
             setRejectModalVisible(false);
             setDetailModalVisible(false);
-            Alert.alert("Success", "Resep telah ditolak!");
+            Alert.alert("Sukses", "Resep telah ditolak!");
         } catch (err: any) {
             Alert.alert("Error", err.message);
         } finally {
@@ -129,7 +130,7 @@ const ModerationPendingScreen: React.FC = () => {
     if (loading && !refreshing) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#ef4444" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -149,25 +150,22 @@ const ModerationPendingScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <Header title="Review Pending" />
+            <Header title="Resep Pending" />
             <ScrollView
                 style={styles.content}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#ef4444"]}
-                        tintColor="#ef4444"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
                 {recipes.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>✓</Text>
                         <Text style={styles.emptyTitle}>Semua resep telah direview!</Text>
-                        <Text style={styles.emptyText}>
-                            Tidak ada pending resep untuk saat ini.
-                        </Text>
+                        <Text style={styles.emptyText}>Tidak ada pending resep untuk saat ini.</Text>
                     </View>
                 ) : (
                     <>
@@ -180,12 +178,8 @@ const ModerationPendingScreen: React.FC = () => {
                                     </View>
                                 </View>
 
-                                <Text style={styles.recipeInfo}>
-                                    Oleh: {recipe.creator_username}
-                                </Text>
-                                <Text style={styles.recipeInfo}>
-                                    Dibuat: {formatDate(recipe.created_at)}
-                                </Text>
+                                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
+                                <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
 
                                 {recipe.ingredients && (
                                     <View style={styles.ingredientsContainer}>
@@ -196,13 +190,8 @@ const ModerationPendingScreen: React.FC = () => {
                                     </View>
                                 )}
 
-                                <TouchableOpacity
-                                    style={styles.detailButton}
-                                    onPress={() => openDetailModal(recipe)}
-                                >
-                                    <Text style={styles.detailButtonText}>
-                                        Lihat detail lengkap →
-                                    </Text>
+                                <TouchableOpacity style={styles.detailButton} onPress={() => openDetailModal(recipe)}>
+                                    <Text style={styles.detailButtonText}>Lihat detail lengkap →</Text>
                                 </TouchableOpacity>
 
                                 <View style={styles.actionButtons}>
@@ -211,14 +200,14 @@ const ModerationPendingScreen: React.FC = () => {
                                         onPress={() => handleApprove(recipe.id)}
                                         disabled={actionLoading}
                                     >
-                                        <Text style={styles.approveButtonText}>✓ Setujui</Text>
+                                        <Text style={styles.approveButtonText}>Setujui</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={styles.rejectButton}
                                         onPress={() => openRejectModal(recipe.id)}
                                         disabled={actionLoading}
                                     >
-                                        <Text style={styles.rejectButtonText}>✕ Tolak</Text>
+                                        <Text style={styles.rejectButtonText}>Tolak</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -241,7 +230,7 @@ const ModerationPendingScreen: React.FC = () => {
                 onRequestClose={() => setDetailModalVisible(false)}
             >
                 {selectedRecipe && (
-                    <View style={styles.modalContainer}>
+                    <SafeAreaView style={styles.modalSafeArea}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{selectedRecipe.name}</Text>
                             <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
@@ -252,16 +241,12 @@ const ModerationPendingScreen: React.FC = () => {
                         <ScrollView style={styles.modalContent}>
                             <View style={styles.modalBadges}>
                                 <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>
-                                        {selectedRecipe.category}
-                                    </Text>
+                                    <Text style={styles.categoryText}>{selectedRecipe.category}</Text>
                                 </View>
                             </View>
 
                             <View style={styles.modalInfo}>
-                                <Text style={styles.modalInfoText}>
-                                    Oleh: {selectedRecipe.creator_username}
-                                </Text>
+                                <Text style={styles.modalInfoText}>Oleh: {selectedRecipe.creator_username}</Text>
                                 <Text style={styles.modalInfoText}>
                                     Dibuat: {formatDate(selectedRecipe.created_at)}
                                 </Text>
@@ -270,27 +255,21 @@ const ModerationPendingScreen: React.FC = () => {
                             {selectedRecipe.description && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Deskripsi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.description}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.description}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.ingredients && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Bahan-bahan</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.ingredients}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.ingredients}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.instructions && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Instruksi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.instructions}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.instructions}</Text>
                                 </View>
                             )}
                         </ScrollView>
@@ -311,7 +290,7 @@ const ModerationPendingScreen: React.FC = () => {
                                 <Text style={styles.rejectButtonText}>Tolak</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </SafeAreaView>
                 )}
             </Modal>
 
@@ -322,16 +301,18 @@ const ModerationPendingScreen: React.FC = () => {
                 animationType="slide"
                 onRequestClose={() => setRejectModalVisible(false)}
             >
-                <View style={styles.rejectModalOverlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.rejectModalOverlay}
+                >
                     <View style={styles.rejectModalContent}>
                         <Text style={styles.modalTitle}>Tolak Resep</Text>
-                        <Text style={styles.modalSubtitle}>
-                            Berikan alasan kenapa menolak resep tersebut!
-                        </Text>
+                        <Text style={styles.modalSubtitle}>Berikan alasan kenapa menolak resep tersebut!</Text>
 
                         <TextInput
                             style={styles.reasonInput}
                             placeholder="e.g., bahan kurang lengkap, berisi hal yang buruk..."
+                            placeholderTextColor={colors.textMuted}
                             value={rejectionReason}
                             onChangeText={setRejectionReason}
                             multiline
@@ -353,14 +334,14 @@ const ModerationPendingScreen: React.FC = () => {
                                 disabled={actionLoading}
                             >
                                 {actionLoading ? (
-                                    <ActivityIndicator color="#fff" />
+                                    <ActivityIndicator color={colors.textInverse} />
                                 ) : (
                                     <Text style={styles.modalRejectText}>Tolak Resep</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -369,27 +350,27 @@ const ModerationPendingScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.surface,
     },
     content: {
         flex: 1,
         padding: 16,
     },
     recipeCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     recipeHeader: {
@@ -402,40 +383,40 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginRight: 8,
     },
     categoryBadge: {
-        backgroundColor: "#fed7aa",
-        paddingHorizontal: 8,
+        backgroundColor: colors.secondarySoft,
+        paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 12,
     },
     categoryText: {
-        color: "#9a3412",
+        color: colors.secondary,
         fontSize: 12,
         fontWeight: "600",
     },
     recipeInfo: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 4,
     },
     ingredientsContainer: {
         marginTop: 12,
         padding: 12,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.inputBackground,
         borderRadius: 8,
     },
     ingredientsLabel: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#374151",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     ingredientsText: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     detailButton: {
         marginTop: 12,
@@ -444,7 +425,7 @@ const styles = StyleSheet.create({
     detailButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#ef4444",
+        color: colors.secondary,
     },
     actionButtons: {
         flexDirection: "row",
@@ -453,25 +434,25 @@ const styles = StyleSheet.create({
     },
     approveButton: {
         flex: 1,
-        backgroundColor: "#22c55e",
+        backgroundColor: colors.successSoft,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     approveButtonText: {
-        color: "#fff",
+        color: colors.success,
         fontWeight: "600",
         fontSize: 14,
     },
     rejectButton: {
         flex: 1,
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.errorSoft,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     rejectButtonText: {
-        color: "#fff",
+        color: colors.error,
         fontWeight: "600",
         fontSize: 14,
     },
@@ -480,43 +461,38 @@ const styles = StyleSheet.create({
         marginTop: 60,
         paddingHorizontal: 20,
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
     emptyTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     emptyText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         textAlign: "center",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
         paddingHorizontal: 20,
     },
     retryButton: {
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },
-    // Detail Modal Styles
-    modalContainer: {
+    modalSafeArea: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
     },
     modalHeader: {
         flexDirection: "row",
@@ -524,17 +500,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.divider,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         flex: 1,
     },
     closeButton: {
         fontSize: 24,
-        color: "#6b7280",
+        color: colors.textPrimary,
         padding: 4,
     },
     modalContent: {
@@ -552,7 +528,7 @@ const styles = StyleSheet.create({
     },
     modalInfoText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     modalSection: {
         marginBottom: 20,
@@ -560,12 +536,12 @@ const styles = StyleSheet.create({
     modalSectionTitle: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     modalSectionText: {
         fontSize: 14,
-        color: "#374151",
+        color: colors.textPrimary,
         lineHeight: 20,
     },
     modalActions: {
@@ -573,16 +549,15 @@ const styles = StyleSheet.create({
         gap: 12,
         padding: 16,
         borderTopWidth: 1,
-        borderTopColor: "#e5e7eb",
+        borderTopColor: colors.divider,
     },
-    // Reject Modal Styles
     rejectModalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         justifyContent: "flex-end",
     },
     rejectModalContent: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 24,
@@ -590,13 +565,15 @@ const styles = StyleSheet.create({
     },
     modalSubtitle: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 16,
     },
     reasonInput: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
+        borderColor: colors.border,
         borderRadius: 8,
+        backgroundColor: colors.inputBackground,
+        color: colors.textPrimary,
         padding: 12,
         fontSize: 14,
         minHeight: 100,
@@ -608,25 +585,25 @@ const styles = StyleSheet.create({
     },
     modalCancelButton: {
         flex: 1,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.overlay,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     modalCancelText: {
-        color: "#374151",
+        color: colors.textPrimary,
         fontWeight: "600",
         fontSize: 16,
     },
     modalRejectButton: {
         flex: 1,
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.error,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     modalRejectText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },

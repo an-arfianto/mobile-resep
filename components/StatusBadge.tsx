@@ -1,6 +1,7 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { colors } from "@/assets/color";
 import type { RecipeStatus } from "@/types";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 interface StatusBadgeProps {
     status: RecipeStatus;
@@ -11,26 +12,26 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         switch (status) {
             case "approved":
                 return {
-                    bg: "#dcfce7",
-                    text: "#166534",
+                    bg: colors.successSoft,
+                    text: colors.success,
                     label: "Disetujui",
                 };
             case "pending":
                 return {
-                    bg: "#fef3c7",
-                    text: "#854d0e",
+                    bg: colors.warningSoft,
+                    text: colors.warning,
                     label: "Pending",
                 };
             case "rejected":
                 return {
-                    bg: "#fee2e2",
-                    text: "#991b1b",
+                    bg: colors.errorSoft,
+                    text: colors.error,
                     label: "Ditolak",
                 };
             default:
                 return {
-                    bg: "#f3f4f6",
-                    text: "#6b7280",
+                    bg: colors.overlay,
+                    text: colors.textPrimary,
                     label: status,
                 };
         }
@@ -47,7 +48,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
 const styles = StyleSheet.create({
     badge: {
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
         alignSelf: "flex-start",

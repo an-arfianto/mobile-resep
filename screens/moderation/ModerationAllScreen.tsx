@@ -1,20 +1,21 @@
-import React, { useState, useCallback } from "react";
+import { colors } from "@/assets/color";
+import Header from "@/components/Header";
+import LoadMoreButton from "@/components/LoadMoreButton";
+import StatusBadge from "@/components/StatusBadge";
+import api from "@/services/api";
+import type { ModerationRecipe } from "@/types";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
 import {
-    View,
-    Text,
+    ActivityIndicator,
+    Modal,
+    RefreshControl,
     ScrollView,
     StyleSheet,
-    ActivityIndicator,
-    RefreshControl,
+    Text,
     TouchableOpacity,
-    Modal,
+    View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import Header from "@/components/Header";
-import type { ModerationRecipe } from "@/types";
-import api from "@/services/api";
-import StatusBadge from "@/components/StatusBadge";
-import LoadMoreButton from "@/components/LoadMoreButton";
 
 const ModerationAllScreen: React.FC = () => {
     const [recipes, setRecipes] = useState<ModerationRecipe[]>([]);
@@ -22,12 +23,8 @@ const ModerationAllScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
-
-    // Pagination
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
-
-    // Detail Modal
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState<ModerationRecipe | null>(null);
 
@@ -93,19 +90,10 @@ const ModerationAllScreen: React.FC = () => {
                 setDisplayCount(10);
             }}
         >
-            <Text
-                style={[styles.filterButtonText, filter === value && styles.filterButtonTextActive]}
-            >
-                {label}
-            </Text>
+            <Text style={[styles.filterButtonText, filter === value && styles.filterButtonTextActive]}>{label}</Text>
             {count > 0 && (
                 <View style={[styles.filterBadge, filter === value && styles.filterBadgeActive]}>
-                    <Text
-                        style={[
-                            styles.filterBadgeText,
-                            filter === value && styles.filterBadgeTextActive,
-                        ]}
-                    >
+                    <Text style={[styles.filterBadgeText, filter === value && styles.filterBadgeTextActive]}>
                         {count}
                     </Text>
                 </View>
@@ -118,7 +106,7 @@ const ModerationAllScreen: React.FC = () => {
             <View style={styles.container}>
                 <Header title="Semua Resep" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             </View>
         );
@@ -163,18 +151,15 @@ const ModerationAllScreen: React.FC = () => {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#3b82f6"]}
-                        tintColor="#3b82f6"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
                 {filteredRecipes.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>📚</Text>
                         <Text style={styles.emptyTitle}>Tidak ada resep</Text>
-                        <Text style={styles.emptyText}>
-                            Tidak ada resep yang sesuai dengan filter.
-                        </Text>
+                        <Text style={styles.emptyText}>Tidak ada resep yang sesuai dengan filter.</Text>
                     </View>
                 ) : (
                     <>
@@ -196,19 +181,13 @@ const ModerationAllScreen: React.FC = () => {
                                     <View style={styles.categoryBadge}>
                                         <Text style={styles.categoryText}>{recipe.category}</Text>
                                     </View>
-                                    <Text style={styles.dateText}>
-                                        {formatDate(recipe.created_at)}
-                                    </Text>
+                                    <Text style={styles.dateText}>{formatDate(recipe.created_at)}</Text>
                                 </View>
 
-                                <Text style={styles.recipeInfo}>
-                                    Oleh: {recipe.creator_username}
-                                </Text>
+                                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
 
                                 {recipe.reviewed_by && recipe.reviewer_username && (
-                                    <Text style={styles.reviewInfo}>
-                                        Direview oleh: {recipe.reviewer_username}
-                                    </Text>
+                                    <Text style={styles.reviewInfo}>Direview oleh: {recipe.reviewer_username}</Text>
                                 )}
 
                                 {recipe.status === "rejected" && recipe.rejection_reason && (
@@ -251,17 +230,13 @@ const ModerationAllScreen: React.FC = () => {
                         <ScrollView style={styles.modalContent}>
                             <View style={styles.modalBadges}>
                                 <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>
-                                        {selectedRecipe.category}
-                                    </Text>
+                                    <Text style={styles.categoryText}>{selectedRecipe.category}</Text>
                                 </View>
                                 <StatusBadge status={selectedRecipe.status} />
                             </View>
 
                             <View style={styles.modalInfo}>
-                                <Text style={styles.modalInfoText}>
-                                    Oleh: {selectedRecipe.creator_username}
-                                </Text>
+                                <Text style={styles.modalInfoText}>Oleh: {selectedRecipe.creator_username}</Text>
                                 <Text style={styles.modalInfoText}>
                                     Dibuat: {formatDate(selectedRecipe.created_at)}
                                 </Text>
@@ -280,43 +255,32 @@ const ModerationAllScreen: React.FC = () => {
                             {selectedRecipe.description && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Deskripsi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.description}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.description}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.ingredients && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Bahan-bahan</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.ingredients}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.ingredients}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.instructions && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Instruksi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.instructions}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.instructions}</Text>
                                 </View>
                             )}
 
-                            {selectedRecipe.status === "rejected" &&
-                                selectedRecipe.rejection_reason && (
-                                    <View style={styles.modalSection}>
-                                        <Text style={styles.modalSectionTitle}>
-                                            Alasan Penolakan
-                                        </Text>
-                                        <View style={styles.rejectionContainer}>
-                                            <Text style={styles.rejectionText}>
-                                                {selectedRecipe.rejection_reason}
-                                            </Text>
-                                        </View>
+                            {selectedRecipe.status === "rejected" && selectedRecipe.rejection_reason && (
+                                <View style={styles.modalSection}>
+                                    <Text style={styles.modalSectionTitle}>Alasan Penolakan</Text>
+                                    <View style={styles.rejectionContainer}>
+                                        <Text style={styles.rejectionText}>{selectedRecipe.rejection_reason}</Text>
                                     </View>
-                                )}
+                                </View>
+                            )}
                         </ScrollView>
                     </View>
                 )}
@@ -329,18 +293,18 @@ const ModerationAllScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.surface,
     },
     filterContainer: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.divider,
         maxHeight: 60,
     },
     filterContent: {
@@ -353,52 +317,52 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.surface,
         marginRight: 8,
     },
     filterButtonActive: {
-        backgroundColor: "#3b82f6",
+        backgroundColor: colors.primary,
     },
     filterButtonText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#6b7280",
+        color: colors.textPrimary,
     },
     filterButtonTextActive: {
-        color: "#fff",
+        color: colors.textInverse,
     },
     filterBadge: {
-        backgroundColor: "#d1d5db",
+        backgroundColor: colors.overlay,
         borderRadius: 10,
         paddingHorizontal: 6,
         paddingVertical: 2,
         marginLeft: 6,
     },
     filterBadgeActive: {
-        backgroundColor: "#1e40af",
+        backgroundColor: colors.overlay,
     },
     filterBadgeText: {
         fontSize: 11,
         fontWeight: "700",
-        color: "#374151",
+        color: colors.textPrimary,
     },
     filterBadgeTextActive: {
-        color: "#fff",
+        color: colors.textPrimary,
     },
     content: {
         flex: 1,
         padding: 16,
     },
     recipeCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 14,
         marginBottom: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 3,
-        elevation: 2,
+        elevation: 3,
     },
     recipeHeader: {
         flexDirection: "row",
@@ -410,7 +374,7 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginRight: 8,
     },
     recipeRow: {
@@ -420,47 +384,45 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     categoryBadge: {
-        backgroundColor: "#fed7aa",
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 5,
+        backgroundColor: colors.secondarySoft,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
     categoryText: {
-        color: "#9a3412",
+        color: colors.secondary,
         fontSize: 11,
         fontWeight: "600",
     },
     dateText: {
         fontSize: 12,
-        color: "#9ca3af",
+        color: colors.textMuted,
     },
     recipeInfo: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 3,
     },
     reviewInfo: {
         fontSize: 12,
-        color: "#059669",
+        color: colors.success,
         fontWeight: "500",
         marginBottom: 8,
     },
     rejectionContainer: {
         marginTop: 8,
         padding: 8,
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
         borderRadius: 6,
-        borderLeftWidth: 2,
-        borderLeftColor: "#dc2626",
     },
     rejectionText: {
         fontSize: 12,
-        color: "#dc2626",
+        color: colors.error,
     },
     tapToView: {
         marginTop: 8,
         fontSize: 13,
-        color: "#3b82f6",
+        color: colors.primary,
         fontWeight: "600",
         textAlign: "center",
     },
@@ -469,42 +431,38 @@ const styles = StyleSheet.create({
         marginTop: 60,
         paddingHorizontal: 20,
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
     emptyTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     emptyText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         textAlign: "center",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
         paddingHorizontal: 20,
     },
     retryButton: {
-        backgroundColor: "#3b82f6",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
     },
     modalHeader: {
         flexDirection: "row",
@@ -512,17 +470,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.divider,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         flex: 1,
     },
     closeButton: {
         fontSize: 24,
-        color: "#6b7280",
+        color: colors.textPrimary,
         padding: 4,
     },
     modalContent: {
@@ -540,7 +498,7 @@ const styles = StyleSheet.create({
     },
     modalInfoText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     modalSection: {
         marginBottom: 20,
@@ -548,12 +506,12 @@ const styles = StyleSheet.create({
     modalSectionTitle: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     modalSectionText: {
         fontSize: 14,
-        color: "#374151",
+        color: colors.textPrimary,
         lineHeight: 20,
     },
 });

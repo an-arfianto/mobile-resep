@@ -1,60 +1,39 @@
-// navigation/AdminTabNavigator.tsx - Bottom tabs for admin
-import React from "react";
-import { Text } from "react-native";
+import { colors } from "@/assets/color";
+import Feather from "@expo/vector-icons/Feather";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-// Admin Screens
 import AdminDashboardScreen from "@/screens/admin/AdminDashboardScreen";
-import AdminUsersScreen from "@/screens/admin/AdminUsersScreen";
 import AdminRecipesScreen from "@/screens/admin/AdminRecipesScreen";
-import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
+import AdminUsersScreen from "@/screens/admin/AdminUsersScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
+import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Stack navigator for Dashboard tab
 const DashboardStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="AdminDashboardMain" component={AdminDashboardScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for Users tab
 const UsersStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="AdminUsersMain" component={AdminUsersScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for Recipes tab
 const RecipesStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="AdminRecipesMain" component={AdminRecipesScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for Profile tab
 const ProfileStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     </Stack.Navigator>
 );
@@ -64,15 +43,16 @@ const AdminTabNavigator: React.FC = () => {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: "#dc2626",
-                tabBarInactiveTintColor: "#6b7280",
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textPrimary,
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: "600",
                 },
                 tabBarStyle: {
+                    backgroundColor: colors.surface,
                     borderTopWidth: 1,
-                    borderTopColor: "#e5e7eb",
+                    borderTopColor: colors.divider,
                     paddingTop: 8,
                     paddingBottom: 8,
                     height: 60,
@@ -84,31 +64,31 @@ const AdminTabNavigator: React.FC = () => {
                 component={DashboardStack}
                 options={{
                     tabBarLabel: "Home",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="home" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
                 name="AdminUsers"
                 component={UsersStack}
                 options={{
-                    tabBarLabel: "Users",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👥</Text>,
+                    tabBarLabel: "User",
+                    tabBarIcon: ({ color }) => <Feather name="users" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
                 name="AdminRecipes"
                 component={RecipesStack}
                 options={{
-                    tabBarLabel: "Recipes",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📚</Text>,
+                    tabBarLabel: "Resep",
+                    tabBarIcon: ({ color }) => <Feather name="book" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
                 name="Profile"
                 component={ProfileStack}
                 options={{
-                    tabBarLabel: "Profile",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+                    tabBarLabel: "Profil",
+                    tabBarIcon: ({ color }) => <Feather name="user" size={24} color={color} />,
                 }}
             />
         </Tab.Navigator>

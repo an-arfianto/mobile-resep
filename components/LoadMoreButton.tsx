@@ -1,5 +1,6 @@
+import { colors } from "@/assets/color";
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface LoadMoreButtonProps {
     currentItems: number;
@@ -9,18 +10,13 @@ interface LoadMoreButtonProps {
     itemsPerPage?: number;
 }
 
-const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
-    currentItems,
-    totalItems,
-    onLoadMore,
-    loading = false,
-}) => {
+const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({ currentItems, totalItems, onLoadMore, loading = false }) => {
     const hasMore = currentItems < totalItems;
 
     if (!hasMore) {
         return (
             <View style={styles.endContainer}>
-                <Text style={styles.endText}>✓ {totalItems} item</Text>
+                <Text style={styles.endText}>Total {totalItems} item</Text>
             </View>
         );
     }
@@ -32,9 +28,9 @@ const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({
             </Text>
             <TouchableOpacity style={styles.button} onPress={onLoadMore} disabled={loading}>
                 {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={colors.textInverse} />
                 ) : (
-                    <Text style={styles.buttonText}>Load More</Text>
+                    <Text style={styles.buttonText}>Coba Lagi</Text>
                 )}
             </TouchableOpacity>
         </View>
@@ -49,11 +45,11 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textMuted,
         marginBottom: 12,
     },
     button: {
-        backgroundColor: "#00796b",
+        backgroundColor: colors.primarySoft,
         paddingVertical: 12,
         paddingHorizontal: 32,
         borderRadius: 8,
@@ -64,7 +60,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     buttonText: {
-        color: "#fff",
+        color: colors.primary,
         fontSize: 15,
         fontWeight: "600",
     },
@@ -75,7 +71,7 @@ const styles = StyleSheet.create({
     },
     endText: {
         fontSize: 14,
-        color: "#22c55e",
+        color: colors.textMuted,
         fontWeight: "500",
     },
 });

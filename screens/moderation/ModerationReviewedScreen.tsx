@@ -1,21 +1,22 @@
-import React, { useState, useCallback } from "react";
+import { colors } from "@/assets/color";
+import Header from "@/components/Header";
+import LoadMoreButton from "@/components/LoadMoreButton";
+import StatusBadge from "@/components/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/services/api";
+import type { ModerationRecipe } from "@/types";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
 import {
-    View,
-    Text,
+    ActivityIndicator,
+    Modal,
+    RefreshControl,
     ScrollView,
     StyleSheet,
-    ActivityIndicator,
-    RefreshControl,
+    Text,
     TouchableOpacity,
-    Modal,
+    View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useAuth } from "@/context/AuthContext";
-import type { ModerationRecipe } from "@/types";
-import api from "@/services/api";
-import StatusBadge from "@/components/StatusBadge";
-import LoadMoreButton from "@/components/LoadMoreButton";
-import Header from "@/components/Header";
 
 const ModerationReviewedScreen: React.FC = () => {
     const { user } = useAuth();
@@ -42,7 +43,7 @@ const ModerationReviewedScreen: React.FC = () => {
                 (r) => Number(r.reviewed_by) === Number(user?.id) && r.status !== "pending",
             );
             setRecipes(reviewedByMe);
-            setDisplayCount(10); // Reset to initial count
+            setDisplayCount(10);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -83,7 +84,7 @@ const ModerationReviewedScreen: React.FC = () => {
     if (loading && !refreshing) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -103,32 +104,25 @@ const ModerationReviewedScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <Header title="Reviewed Recipe" />
+            <Header title="Histori Resep" />
             <ScrollView
                 style={styles.content}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#3b82f6"]}
-                        tintColor="#3b82f6"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
                 {recipes.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>📋</Text>
                         <Text style={styles.emptyTitle}>Tidak ada resep</Text>
                         <Text style={styles.emptyText}>Anda belum mereview resep.</Text>
                     </View>
                 ) : (
                     <>
-                        <View style={styles.infoContainer}>
-                            <Text style={styles.infoText}>
-                                {recipes.length} resep telah direview
-                            </Text>
-                        </View>
-
                         {displayedRecipes.map((recipe) => (
                             <TouchableOpacity
                                 key={recipe.id}
@@ -146,12 +140,8 @@ const ModerationReviewedScreen: React.FC = () => {
                                 </View>
 
                                 <View style={styles.recipeDetails}>
-                                    <Text style={styles.recipeInfo}>
-                                        Oleh: {recipe.creator_username}
-                                    </Text>
-                                    <Text style={styles.recipeInfo}>
-                                        Dibuat: {formatDate(recipe.created_at)}
-                                    </Text>
+                                    <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
+                                    <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
                                     {recipe.reviewed_at && (
                                         <Text style={styles.recipeInfo}>
                                             Direview: {formatDate(recipe.reviewed_at)}
@@ -177,7 +167,7 @@ const ModerationReviewedScreen: React.FC = () => {
                                     </View>
                                 )}
 
-                                <Text style={styles.tapToView}>Tap untuk detail lengkap</Text>
+                                <Text style={styles.tapToView}>Lihat detail lengkap</Text>
                             </TouchableOpacity>
                         ))}
 
@@ -209,17 +199,13 @@ const ModerationReviewedScreen: React.FC = () => {
                         <ScrollView style={styles.modalContent}>
                             <View style={styles.modalBadges}>
                                 <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>
-                                        {selectedRecipe.category}
-                                    </Text>
+                                    <Text style={styles.categoryText}>{selectedRecipe.category}</Text>
                                 </View>
                                 <StatusBadge status={selectedRecipe.status} />
                             </View>
 
                             <View style={styles.modalInfo}>
-                                <Text style={styles.modalInfoText}>
-                                    Oleh: {selectedRecipe.creator_username}
-                                </Text>
+                                <Text style={styles.modalInfoText}>Oleh: {selectedRecipe.creator_username}</Text>
                                 <Text style={styles.modalInfoText}>
                                     Dibuat: {formatDate(selectedRecipe.created_at)}
                                 </Text>
@@ -233,43 +219,32 @@ const ModerationReviewedScreen: React.FC = () => {
                             {selectedRecipe.description && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Deskripsi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.description}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.description}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.ingredients && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Bahan-bahan</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.ingredients}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.ingredients}</Text>
                                 </View>
                             )}
 
                             {selectedRecipe.instructions && (
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalSectionTitle}>Instruksi</Text>
-                                    <Text style={styles.modalSectionText}>
-                                        {selectedRecipe.instructions}
-                                    </Text>
+                                    <Text style={styles.modalSectionText}>{selectedRecipe.instructions}</Text>
                                 </View>
                             )}
 
-                            {selectedRecipe.status === "rejected" &&
-                                selectedRecipe.rejection_reason && (
-                                    <View style={styles.modalSection}>
-                                        <Text style={styles.modalSectionTitle}>
-                                            Alasan Penolakan
-                                        </Text>
-                                        <View style={styles.rejectionContainer}>
-                                            <Text style={styles.rejectionText}>
-                                                {selectedRecipe.rejection_reason}
-                                            </Text>
-                                        </View>
+                            {selectedRecipe.status === "rejected" && selectedRecipe.rejection_reason && (
+                                <View style={styles.modalSection}>
+                                    <Text style={styles.modalSectionTitle}>Alasan Penolakan</Text>
+                                    <View style={styles.rejectionContainer}>
+                                        <Text style={styles.rejectionText}>{selectedRecipe.rejection_reason}</Text>
                                     </View>
-                                )}
+                                </View>
+                            )}
                         </ScrollView>
                     </View>
                 )}
@@ -281,39 +256,27 @@ const ModerationReviewedScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     content: {
         flex: 1,
         padding: 16,
     },
-    infoContainer: {
-        backgroundColor: "#dbeafe",
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-    },
-    infoText: {
-        color: "#1e40af",
-        fontSize: 14,
-        fontWeight: "600",
-        textAlign: "center",
-    },
     recipeCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     recipeHeader: {
@@ -326,19 +289,19 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginRight: 8,
     },
     categoryBadge: {
-        backgroundColor: "#fed7aa",
-        paddingHorizontal: 10,
+        backgroundColor: colors.secondarySoft,
+        paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 12,
         alignSelf: "flex-start",
         marginBottom: 12,
     },
     categoryText: {
-        color: "#9a3412",
+        color: colors.secondary,
         fontSize: 12,
         fontWeight: "600",
     },
@@ -347,47 +310,45 @@ const styles = StyleSheet.create({
     },
     recipeInfo: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     ingredientsContainer: {
         marginTop: 8,
         padding: 12,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.inputBackground,
         borderRadius: 8,
     },
     ingredientsLabel: {
         fontSize: 13,
         fontWeight: "600",
-        color: "#374151",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     ingredientsText: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     rejectionContainer: {
         marginTop: 12,
         padding: 12,
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
         borderRadius: 8,
-        borderLeftWidth: 3,
-        borderLeftColor: "#dc2626",
     },
     rejectionLabel: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: "700",
-        color: "#991b1b",
+        color: colors.error,
         marginBottom: 4,
     },
     rejectionText: {
         fontSize: 13,
-        color: "#dc2626",
+        color: colors.error,
     },
     tapToView: {
         marginTop: 12,
         fontSize: 13,
-        color: "#3b82f6",
+        color: colors.secondary,
         fontWeight: "600",
         textAlign: "center",
     },
@@ -396,44 +357,39 @@ const styles = StyleSheet.create({
         marginTop: 60,
         paddingHorizontal: 20,
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
     emptyTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     emptyText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         textAlign: "center",
         lineHeight: 20,
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
         paddingHorizontal: 20,
     },
     retryButton: {
-        backgroundColor: "#3b82f6",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },
-    // Modal Styles
     modalContainer: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
     },
     modalHeader: {
         flexDirection: "row",
@@ -441,17 +397,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.divider,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         flex: 1,
     },
     closeButton: {
         fontSize: 24,
-        color: "#6b7280",
+        color: colors.textPrimary,
         padding: 4,
     },
     modalContent: {
@@ -469,7 +425,7 @@ const styles = StyleSheet.create({
     },
     modalInfoText: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     modalSection: {
         marginBottom: 20,
@@ -477,12 +433,12 @@ const styles = StyleSheet.create({
     modalSectionTitle: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     modalSectionText: {
         fontSize: 14,
-        color: "#374151",
+        color: colors.textSecondary,
         lineHeight: 20,
     },
 });

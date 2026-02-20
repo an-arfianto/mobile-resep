@@ -1,10 +1,11 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { Recipe, Ingredient, RootStackParamList } from "@/types";
+import { colors } from "@/assets/color";
 import StatusBadge from "@/components/StatusBadge";
 import api from "@/services/api";
+import type { Ingredient, Recipe, RootStackParamList } from "@/types";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface RecipeCardWithStatusProps {
     recipe: Recipe;
@@ -37,28 +38,38 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
         ]);
     };
 
-    // type checking untuk bahan
+    // Format ingredient properly without extra spaces
+    const formatIngredient = (ing: Ingredient): string => {
+        const parts: string[] = [];
+
+        // Add quantity if exists
+        if (ing.quantity !== null && ing.quantity !== undefined) {
+            parts.push(ing.quantity.toString());
+        }
+
+        // Add unit if exists and not empty
+        if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
+            parts.push(ing.unit);
+        }
+
+        // Add ingredient name
+        parts.push(ing.name);
+
+        return parts.join(" ");
+    };
+
+    // Get ingredients display string
     const getIngredientsDisplay = (): string => {
         if (!recipe.ingredients) return "";
 
-        // string
+        // If string, return as is
         if (typeof recipe.ingredients === "string") {
             return recipe.ingredients;
         }
 
-        // array
+        // If array, format each ingredient properly
         if (Array.isArray(recipe.ingredients)) {
-            return recipe.ingredients
-                .map((ing: Ingredient) => {
-                    if (ing.quantity && ing.unit) {
-                        return `${ing.quantity} ${ing.unit} ${ing.name}`;
-                    } else if (ing.quantity) {
-                        return `${ing.quantity} ${ing.name}`;
-                    } else {
-                        return ing.name;
-                    }
-                })
-                .join(", ");
+            return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
         }
 
         return "";
@@ -98,7 +109,6 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
 
             <Text style={styles.date}>{formatDate(recipe.created_at)}</Text>
 
-            {/* tag alasan resep ditolak */}
             {recipe.status === "rejected" && recipe.rejection_reason && (
                 <View style={styles.rejectionAlert}>
                     <Text style={styles.rejectionLabel}>Alasan:</Text>
@@ -106,7 +116,6 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
                 </View>
             )}
 
-            {/* Action Buttons */}
             <View style={styles.actions}>
                 <TouchableOpacity
                     style={styles.editButton}
@@ -133,17 +142,14 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     header: {
@@ -156,39 +162,37 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111827",
+        color: colors.textPrimary,
         marginRight: 8,
     },
     categoryContainer: {
         marginBottom: 12,
     },
     categoryBadge: {
-        backgroundColor: "#fed7aa",
-        paddingHorizontal: 10,
+        backgroundColor: colors.secondarySoft,
+        paddingHorizontal: 12,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 12,
         alignSelf: "flex-start",
     },
     categoryText: {
-        color: "#9a3412",
+        color: colors.secondary,
         fontSize: 12,
         fontWeight: "600",
     },
     ingredients: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 8,
         lineHeight: 20,
     },
     date: {
         fontSize: 12,
-        color: "#9ca3af",
+        color: colors.textMuted,
         marginBottom: 12,
     },
     rejectionAlert: {
-        backgroundColor: "#fee2e2",
-        borderLeftWidth: 3,
-        borderLeftColor: "#dc2626",
+        backgroundColor: colors.errorSoft,
         padding: 12,
         borderRadius: 8,
         marginBottom: 12,
@@ -196,12 +200,12 @@ const styles = StyleSheet.create({
     rejectionLabel: {
         fontSize: 12,
         fontWeight: "700",
-        color: "#991b1b",
+        color: colors.error,
         marginBottom: 4,
     },
     rejectionText: {
         fontSize: 13,
-        color: "#dc2626",
+        color: colors.error,
         lineHeight: 18,
     },
     actions: {
@@ -210,25 +214,25 @@ const styles = StyleSheet.create({
     },
     editButton: {
         flex: 1,
-        backgroundColor: "#dbeafe",
+        backgroundColor: colors.successSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     editButtonText: {
-        color: "#1e40af",
+        color: colors.success,
         fontWeight: "600",
         fontSize: 14,
     },
     deleteButton: {
         flex: 1,
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.errorSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     deleteButtonText: {
-        color: "#dc2626",
+        color: colors.error,
         fontWeight: "600",
         fontSize: 14,
     },

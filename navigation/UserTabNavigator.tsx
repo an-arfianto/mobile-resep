@@ -1,52 +1,36 @@
-// navigation/UserTabNavigator.tsx - Bottom tabs for regular users
-import React from "react";
-import { Text } from "react-native";
+import { colors } from "@/assets/color";
+import Feather from "@expo/vector-icons/Feather";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import React from "react";
 
-// User Screens
-import HomeScreen from "@/screens/HomeScreen";
-import SearchScreen from "@/screens/SearchScreen";
-import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
-import MyRecipesScreen from "@/screens/MyRecipesScreen";
 import CreateRecipeScreen from "@/screens/CreateRecipeScreen";
 import EditRecipeScreen from "@/screens/EditRecipeScreen";
+import HomeScreen from "@/screens/HomeScreen";
+import MyRecipesScreen from "@/screens/MyRecipesScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
+import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
+import SearchScreen from "@/screens/SearchScreen";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Stack navigator for Home tab (includes detail screens)
 const HomeStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="HomeMain" component={HomeScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for Search tab
 const SearchStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="SearchMain" component={SearchScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     </Stack.Navigator>
 );
 
-// Stack navigator for My Recipes tab
 const MyRecipesStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MyRecipesMain" component={MyRecipesScreen} />
         <Stack.Screen name="CreateRecipe" component={CreateRecipeScreen} />
         <Stack.Screen name="EditRecipe" component={EditRecipeScreen} />
@@ -54,13 +38,8 @@ const MyRecipesStack = () => (
     </Stack.Navigator>
 );
 
-// Stack navigator for Profile tab
 const ProfileStack = () => (
-    <Stack.Navigator
-        screenOptions={{
-            headerShown: false, // Hide the Stack Navigator header
-        }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="ProfileMain" component={ProfileScreen} />
     </Stack.Navigator>
 );
@@ -70,15 +49,16 @@ const UserTabNavigator: React.FC = () => {
         <Tab.Navigator
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: "#ef4444",
-                tabBarInactiveTintColor: "#6b7280",
+                tabBarActiveTintColor: colors.primary,
+                tabBarInactiveTintColor: colors.textPrimary,
                 tabBarLabelStyle: {
                     fontSize: 11,
                     fontWeight: "600",
                 },
                 tabBarStyle: {
+                    backgroundColor: colors.surface,
                     borderTopWidth: 1,
-                    borderTopColor: "#e5e7eb",
+                    borderTopColor: colors.divider,
                     paddingTop: 8,
                     paddingBottom: 8,
                     height: 60,
@@ -90,7 +70,7 @@ const UserTabNavigator: React.FC = () => {
                 component={HomeStack}
                 options={{
                     tabBarLabel: "Home",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="home" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -98,7 +78,7 @@ const UserTabNavigator: React.FC = () => {
                 component={SearchStack}
                 options={{
                     tabBarLabel: "Cari",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🔍</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="search" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -106,7 +86,7 @@ const UserTabNavigator: React.FC = () => {
                 component={MyRecipesStack}
                 options={{
                     tabBarLabel: "Resep Saya",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📖</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="book" size={24} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -114,7 +94,7 @@ const UserTabNavigator: React.FC = () => {
                 component={ProfileStack}
                 options={{
                     tabBarLabel: "Profil",
-                    tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+                    tabBarIcon: ({ color }) => <Feather name="user" size={24} color={color} />,
                 }}
             />
         </Tab.Navigator>

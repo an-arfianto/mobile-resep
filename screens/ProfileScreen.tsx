@@ -1,19 +1,20 @@
-import React, { useState, useCallback } from "react";
+import { colors } from "@/assets/color";
+import Header from "@/components/Header";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/services/api";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useState } from "react";
 import {
-    View,
-    Text,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
+    Text,
     TextInput,
     TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-    Alert,
+    View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useAuth } from "@/context/AuthContext";
-import Header from "@/components/Header";
-import api from "@/services/api";
 
 const ProfileScreen: React.FC = () => {
     const { logout } = useAuth();
@@ -87,10 +88,10 @@ const ProfileScreen: React.FC = () => {
             return;
         }
 
-        Alert.alert("Update Username", `Ganti username ke "${newUsername}"?`, [
-            { text: "Cancel", style: "cancel" },
+        Alert.alert("Ubah Username", `Ganti username ke "${newUsername}"?`, [
+            { text: "Batal", style: "cancel" },
             {
-                text: "Update",
+                text: "Ubah",
                 onPress: async () => {
                     try {
                         setUsernameLoading(true);
@@ -141,12 +142,12 @@ const ProfileScreen: React.FC = () => {
 
     const getRoleBadge = () => {
         if (profile?.role_id === 1) {
-            return { label: "Admin", bg: "#fee2e2", text: "#b91c1c" };
+            return { label: "Admin", bg: colors.errorSoft, text: colors.error };
         }
         if (profile?.role_id === 2) {
-            return { label: "Moderator", bg: "#f3e8ff", text: "#7c3ead" };
+            return { label: "Moderator", bg: colors.secondarySoft, text: colors.secondary };
         }
-        return { label: "User", bg: "#dbeafe", text: "#1e40af" };
+        return { label: "User", bg: colors.primarySoft, text: colors.primary };
     };
 
     const formatDate = (dateString: string) => {
@@ -158,12 +159,16 @@ const ProfileScreen: React.FC = () => {
         });
     };
 
+    const isAdmin = profile?.role_id === 1;
+    const isModerator = profile?.role_id === 2;
+    const isRegularUser = profile?.role_id === 3;
+
     if (loading && !refreshing) {
         return (
             <View style={styles.container}>
                 <Header title="My Profile" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#00796b" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             </View>
         );
@@ -194,17 +199,13 @@ const ProfileScreen: React.FC = () => {
                     style={[styles.tab, activeTab === "info" && styles.tabActive]}
                     onPress={() => setActiveTab("info")}
                 >
-                    <Text style={[styles.tabText, activeTab === "info" && styles.tabTextActive]}>
-                        Info Profil
-                    </Text>
+                    <Text style={[styles.tabText, activeTab === "info" && styles.tabTextActive]}>Info Profil</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.tab, activeTab === "settings" && styles.tabActive]}
                     onPress={() => setActiveTab("settings")}
                 >
-                    <Text
-                        style={[styles.tabText, activeTab === "settings" && styles.tabTextActive]}
-                    >
+                    <Text style={[styles.tabText, activeTab === "settings" && styles.tabTextActive]}>
                         Pengaturan Akun
                     </Text>
                 </TouchableOpacity>
@@ -217,108 +218,163 @@ const ProfileScreen: React.FC = () => {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#ef4444"]}
-                        tintColor="#ef4444"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
                 {activeTab === "info" && (
                     <>
+                        {/* Profile Header */}
                         <View style={styles.profileHeader}>
                             <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>
-                                    {profile?.username?.charAt(0).toUpperCase()}
-                                </Text>
+                                <Text style={styles.avatarText}>{profile?.username?.charAt(0).toUpperCase()}</Text>
                             </View>
                             <Text style={styles.username}>{profile?.username}</Text>
                             <View style={[styles.roleBadge, { backgroundColor: roleBadge.bg }]}>
-                                <Text style={[styles.roleBadgeText, { color: roleBadge.text }]}>
-                                    {roleBadge.label}
-                                </Text>
+                                <Text style={[styles.roleBadgeText, { color: roleBadge.text }]}>{roleBadge.label}</Text>
                             </View>
-                            <Text style={styles.memberSince}>
-                                Bergabung {formatDate(profile?.created_at)}
-                            </Text>
+                            <Text style={styles.memberSince}>Bergabung {formatDate(profile?.created_at)}</Text>
                         </View>
 
-                        <View style={styles.statsCard}>
-                            <Text style={styles.sectionTitle}>Resep Statistik</Text>
-                            <View style={styles.statsGrid}>
-                                <View style={styles.statItem}>
-                                    <Text style={[styles.statValue, { color: "#3b82f6" }]}>
-                                        {profile?.recipe_count || 0}
-                                    </Text>
-                                    <Text style={styles.statLabel}>Total</Text>
+                        {/* Admin: No Stats (just profile info) */}
+                        {isAdmin && (
+                            <View style={styles.adminInfoCard}>
+                                <Text style={styles.adminInfoText}>Anda adalah admin dengan akses penuh ke sistem</Text>
+                            </View>
+                        )}
+
+                        {/* Moderator: Dual Stats */}
+                        {isModerator && (
+                            <>
+                                {/* Moderation Activity Stats */}
+                                <View style={styles.statsCard}>
+                                    <Text style={styles.sectionTitle}>Aktivitas Moderasi</Text>
+                                    <View style={styles.statsGrid}>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.primary }]}>
+                                                {profile?.reviewed_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Total Review</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.success }]}>
+                                                {profile?.approved_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Disetujui</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.error }]}>
+                                                {profile?.rejected_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Ditolak</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.warning }]}>
+                                                {profile?.pending_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Menunggu Review</Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <View style={styles.statItem}>
-                                    <Text style={[styles.statValue, { color: "#22c55e" }]}>
-                                        {profile?.approved_count || 0}
-                                    </Text>
-                                    <Text style={styles.statLabel}>
-                                        {profile?.role_id === 2
-                                            ? "Saya Setujui"
-                                            : "Telah Disetujui"}
-                                    </Text>
+
+                                {/* Personal Recipe Stats */}
+                                <View style={styles.statsCard}>
+                                    <Text style={styles.sectionTitle}>Resep Saya</Text>
+                                    <View style={styles.statsGrid}>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.primary }]}>
+                                                {profile?.my_recipe_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Total Resep</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.success }]}>
+                                                {profile?.my_approved_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Disetujui</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.warning }]}>
+                                                {profile?.my_pending_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Menunggu Review</Text>
+                                        </View>
+                                        <View style={styles.statItem}>
+                                            <Text style={[styles.statValue, { color: colors.error }]}>
+                                                {profile?.my_rejected_count || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>Ditolak</Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <View style={styles.statItem}>
-                                    <Text style={[styles.statValue, { color: "#eab308" }]}>
-                                        {profile?.pending_count || 0}
-                                    </Text>
-                                    <Text style={styles.statLabel}>Pending</Text>
-                                </View>
-                                <View style={styles.statItem}>
-                                    <Text style={[styles.statValue, { color: "#ef4444" }]}>
-                                        {profile?.rejected_count || 0}
-                                    </Text>
-                                    <Text style={styles.statLabel}>
-                                        {profile?.role_id === 2 ? "Saya Tolak" : "Telah Ditolak"}
-                                    </Text>
+                            </>
+                        )}
+
+                        {/* Regular User: Recipe Stats Only */}
+                        {isRegularUser && (
+                            <View style={styles.statsCard}>
+                                <Text style={styles.sectionTitle}>Statistik Resep</Text>
+                                <View style={styles.statsGrid}>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statValue, { color: colors.primary }]}>
+                                            {profile?.recipe_count || 0}
+                                        </Text>
+                                        <Text style={styles.statLabel}>Total Resep</Text>
+                                    </View>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statValue, { color: colors.success }]}>
+                                            {profile?.approved_count || 0}
+                                        </Text>
+                                        <Text style={styles.statLabel}>Disetujui</Text>
+                                    </View>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statValue, { color: colors.warning }]}>
+                                            {profile?.pending_count || 0}
+                                        </Text>
+                                        <Text style={styles.statLabel}>Pending</Text>
+                                    </View>
+                                    <View style={styles.statItem}>
+                                        <Text style={[styles.statValue, { color: colors.error }]}>
+                                            {profile?.rejected_count || 0}
+                                        </Text>
+                                        <Text style={styles.statLabel}>Ditolak</Text>
+                                    </View>
                                 </View>
                             </View>
-                        </View>
-
-                        {/* Logout Button in Profile Info Tab */}
-                        <TouchableOpacity
-                            style={styles.logoutButton}
-                            onPress={handleLogout}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.logoutIcon}>🚪</Text>
-                            <Text style={styles.logoutButtonText}>Keluar</Text>
-                        </TouchableOpacity>
+                        )}
                     </>
                 )}
 
                 {activeTab === "settings" && (
                     <>
+                        {/* Username Section */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Username</Text>
                                 {!editingUsername && (
                                     <TouchableOpacity onPress={() => setEditingUsername(true)}>
-                                        <Text style={styles.editButton}>Edit</Text>
+                                        <Text style={styles.editButton}>Ubah</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
-
                             {editingUsername ? (
                                 <View>
                                     <TextInput
                                         style={styles.input}
                                         value={newUsername}
                                         onChangeText={setNewUsername}
-                                        placeholder="Masukan username baru"
-                                        editable={!usernameLoading}
+                                        placeholder="Username baru"
+                                        placeholderTextColor={colors.textMuted}
                                         autoCapitalize="none"
                                     />
                                     <View style={styles.buttonRow}>
                                         <TouchableOpacity
                                             style={styles.cancelButton}
                                             onPress={() => {
-                                                setNewUsername(profile?.username);
                                                 setEditingUsername(false);
+                                                setNewUsername(profile?.username);
                                             }}
-                                            disabled={usernameLoading}
                                         >
                                             <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
@@ -328,7 +384,7 @@ const ProfileScreen: React.FC = () => {
                                             disabled={usernameLoading}
                                         >
                                             {usernameLoading ? (
-                                                <ActivityIndicator color="#fff" />
+                                                <ActivityIndicator color={colors.textInverse} />
                                             ) : (
                                                 <Text style={styles.saveButtonText}>Simpan</Text>
                                             )}
@@ -340,55 +396,51 @@ const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
+                        {/* Password Section */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Password</Text>
                                 {!editingPassword && (
                                     <TouchableOpacity onPress={() => setEditingPassword(true)}>
-                                        <Text style={styles.editButton}>Edit</Text>
+                                        <Text style={styles.editButton}>Ubah</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
-
                             {editingPassword ? (
                                 <View>
                                     <TextInput
                                         style={styles.input}
                                         value={currentPassword}
                                         onChangeText={setCurrentPassword}
-                                        placeholder="Password anda sekarang"
+                                        placeholder="Password sekarang"
+                                        placeholderTextColor={colors.textMuted}
                                         secureTextEntry
-                                        editable={!passwordLoading}
-                                        autoCapitalize="none"
                                     />
                                     <TextInput
                                         style={styles.input}
                                         value={newPassword}
                                         onChangeText={setNewPassword}
                                         placeholder="Password baru"
+                                        placeholderTextColor={colors.textMuted}
                                         secureTextEntry
-                                        editable={!passwordLoading}
-                                        autoCapitalize="none"
                                     />
                                     <TextInput
                                         style={styles.input}
                                         value={confirmPassword}
                                         onChangeText={setConfirmPassword}
                                         placeholder="Konfirmasi password baru"
+                                        placeholderTextColor={colors.textMuted}
                                         secureTextEntry
-                                        editable={!passwordLoading}
-                                        autoCapitalize="none"
                                     />
                                     <View style={styles.buttonRow}>
                                         <TouchableOpacity
                                             style={styles.cancelButton}
                                             onPress={() => {
+                                                setEditingPassword(false);
                                                 setCurrentPassword("");
                                                 setNewPassword("");
                                                 setConfirmPassword("");
-                                                setEditingPassword(false);
                                             }}
-                                            disabled={passwordLoading}
                                         >
                                             <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
@@ -398,7 +450,7 @@ const ProfileScreen: React.FC = () => {
                                             disabled={passwordLoading}
                                         >
                                             {passwordLoading ? (
-                                                <ActivityIndicator color="#fff" />
+                                                <ActivityIndicator color={colors.textInverse} />
                                             ) : (
                                                 <Text style={styles.saveButtonText}>Simpan</Text>
                                             )}
@@ -410,12 +462,8 @@ const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
-                        <TouchableOpacity
-                            style={styles.logoutButton}
-                            onPress={handleLogout}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.logoutIcon}>🚪</Text>
+                        {/* Logout Button */}
+                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
                             <Text style={styles.logoutButtonText}>Keluar</Text>
                         </TouchableOpacity>
                     </>
@@ -428,7 +476,7 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flex: 1,
@@ -445,9 +493,9 @@ const styles = StyleSheet.create({
     },
     tabContainer: {
         flexDirection: "row",
-        backgroundColor: "#fff",
+        backgroundColor: colors.background,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.border,
     },
     tab: {
         flex: 1,
@@ -457,46 +505,46 @@ const styles = StyleSheet.create({
         borderBottomColor: "transparent",
     },
     tabActive: {
-        borderBottomColor: "#00796b",
+        borderBottomColor: colors.primary,
     },
     tabText: {
         fontSize: 14,
         fontWeight: "600",
-        color: "#6b7280",
+        color: colors.textMuted,
     },
     tabTextActive: {
-        color: "#00796b",
+        color: colors.primary,
     },
     profileHeader: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 24,
         alignItems: "center",
         marginBottom: 16,
-        shadowColor: "#000",
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     avatar: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.primary,
         justifyContent: "center",
         alignItems: "center",
         marginBottom: 12,
     },
     avatarText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontSize: 36,
         fontWeight: "bold",
     },
     username: {
         fontSize: 24,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     roleBadge: {
@@ -511,23 +559,35 @@ const styles = StyleSheet.create({
     },
     memberSince: {
         fontSize: 13,
-        color: "#6b7280",
+        color: colors.textMuted,
     },
-    statsCard: {
-        backgroundColor: "#fff",
+    adminInfoCard: {
+        backgroundColor: colors.warningSoft,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
+    },
+    adminInfoText: {
+        fontSize: 14,
+        color: colors.warning,
+        textAlign: "center",
+        fontWeight: "600",
+    },
+    statsCard: {
+        backgroundColor: colors.surface,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     statsGrid: {
@@ -547,18 +607,18 @@ const styles = StyleSheet.create({
     },
     statLabel: {
         fontSize: 12,
-        color: "#6b7280",
+        color: colors.textSecondary,
         textAlign: "center",
     },
     card: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
     },
     cardHeader: {
@@ -569,21 +629,22 @@ const styles = StyleSheet.create({
     },
     editButton: {
         fontSize: 14,
-        color: "#ef4444",
+        color: colors.primary,
         fontWeight: "600",
     },
     currentValue: {
         fontSize: 16,
-        color: "#374151",
+        color: colors.textMuted,
     },
     input: {
         borderWidth: 1,
-        borderColor: "#d1d5db",
+        borderColor: colors.border,
         borderRadius: 8,
         padding: 12,
         fontSize: 15,
         marginBottom: 12,
-        backgroundColor: "#fff",
+        backgroundColor: colors.overlay,
+        color: colors.textPrimary,
     },
     buttonRow: {
         flexDirection: "row",
@@ -592,30 +653,30 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         flex: 1,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.error,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     cancelButtonText: {
-        color: "#374151",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 15,
     },
     saveButton: {
         flex: 1,
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.success,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     saveButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 15,
     },
     logoutButton: {
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.error,
         borderRadius: 12,
         paddingVertical: 16,
         paddingHorizontal: 20,
@@ -623,37 +684,26 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 1,
-        borderColor: "#fecaca",
-        shadowColor: "#ef4444",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    logoutIcon: {
-        fontSize: 20,
-        marginRight: 8,
     },
     logoutButtonText: {
-        color: "#dc2626",
+        color: colors.textInverse,
         fontSize: 16,
         fontWeight: "700",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },

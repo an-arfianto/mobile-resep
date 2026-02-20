@@ -1,17 +1,17 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {
-    User,
     AuthResponse,
-    RecipeResponse,
-    SearchResponse,
+    CreateRecipeData,
     LoginCredentials,
+    ModerationRecipesResponse,
+    ModerationStatsResponse,
+    RecipeResponse,
     RegisterData,
     SearchCriteria,
-    CreateRecipeData,
-    ModerationStatsResponse,
-    ModerationRecipesResponse,
+    SearchResponse,
+    User,
 } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 const API_URL = "http://10.24.82.216:3000/api"; // Local IP
 // const API_URL = "https://watercolour-suzi-unexpansive.ngrok-free.dev/api"; // Public IP

@@ -1,14 +1,15 @@
+import { colors } from "@/assets/color";
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 interface HeaderProps {
     title?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ title = "Recipe App" }) => {
+const Header: React.FC<HeaderProps> = ({ title = "Resep App" }) => {
     return (
         <View style={styles.header}>
-            <Text style={styles.title}>🍳 {title}</Text>
+            <Text style={styles.title}>{title}</Text>
         </View>
     );
 };
@@ -16,23 +17,23 @@ const Header: React.FC<HeaderProps> = ({ title = "Recipe App" }) => {
 const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "space-around",
         alignItems: "center",
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
-        shadowColor: "#000",
+        borderBottomColor: colors.divider,
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
     },
     title: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
     },
 });
 

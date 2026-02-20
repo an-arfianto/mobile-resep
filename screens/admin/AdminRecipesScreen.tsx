@@ -1,20 +1,21 @@
-import React, { useState, useCallback } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-    Alert,
-} from "react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { colors } from "@/assets/color";
 import Header from "@/components/Header";
 import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
 import type { RootStackParamList } from "@/types";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useCallback, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,8 +25,6 @@ const AdminRecipesScreen: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Pagination
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
@@ -84,7 +83,7 @@ const AdminRecipesScreen: React.FC = () => {
             <View style={styles.container}>
                 <Header title="Kelola Resep" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#dc2626" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             </View>
         );
@@ -125,8 +124,8 @@ const AdminRecipesScreen: React.FC = () => {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#dc2626"]}
-                        tintColor="#dc2626"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -136,7 +135,6 @@ const AdminRecipesScreen: React.FC = () => {
 
                 {recipes.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyIcon}>📖</Text>
                         <Text style={styles.emptyText}>Tidak ada resep</Text>
                     </View>
                 ) : (
@@ -155,9 +153,7 @@ const AdminRecipesScreen: React.FC = () => {
                                         {recipe.ingredients}
                                     </Text>
                                 )}
-                                <Text style={styles.dateText}>
-                                    Dibuat: {formatDate(recipe.created_at)}
-                                </Text>
+                                <Text style={styles.dateText}>Dibuat: {formatDate(recipe.created_at)}</Text>
                                 <View style={styles.buttonRow}>
                                     <TouchableOpacity
                                         style={styles.viewButton}
@@ -194,7 +190,7 @@ const AdminRecipesScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flex: 1,
@@ -209,32 +205,32 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     headerInfo: {
-        backgroundColor: "#dbeafe",
+        backgroundColor: colors.primarySoft,
         padding: 12,
         borderRadius: 8,
         marginBottom: 16,
     },
     totalText: {
-        color: "#1e40af",
+        color: colors.primary,
         fontSize: 14,
         fontWeight: "600",
         textAlign: "center",
     },
     recipeCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowRadius: 3,
+        elevation: 3,
     },
     recipeName: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     recipeInfo: {
@@ -244,28 +240,28 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     categoryBadge: {
-        backgroundColor: "#fed7aa",
+        backgroundColor: colors.primarySoft,
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
     },
     categoryText: {
-        color: "#9a3412",
+        color: colors.primary,
         fontSize: 12,
         fontWeight: "600",
     },
     authorText: {
         fontSize: 12,
-        color: "#6b7280",
+        color: colors.textSecondary,
     },
     ingredients: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 8,
     },
     dateText: {
         fontSize: 12,
-        color: "#9ca3af",
+        color: colors.textMuted,
         marginBottom: 12,
     },
     buttonRow: {
@@ -274,24 +270,24 @@ const styles = StyleSheet.create({
     },
     viewButton: {
         flex: 1,
-        backgroundColor: "#f3f4f6",
+        backgroundColor: colors.secondarySoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     viewButtonText: {
-        color: "#374151",
+        color: colors.secondary,
         fontWeight: "600",
     },
     deleteButton: {
         flex: 1,
-        backgroundColor: "#dc2626",
+        backgroundColor: colors.errorSoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     deleteButtonText: {
-        color: "#fff",
+        color: colors.error,
         fontWeight: "600",
     },
     emptyContainer: {
@@ -299,29 +295,25 @@ const styles = StyleSheet.create({
         marginTop: 60,
         paddingHorizontal: 20,
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
     emptyText: {
         fontSize: 16,
-        color: "#6b7280",
+        color: colors.textPrimary,
         textAlign: "center",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: "#dc2626",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },

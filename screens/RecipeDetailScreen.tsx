@@ -1,19 +1,11 @@
-import React, { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    ScrollView,
-    StyleSheet,
-    ActivityIndicator,
-    TouchableOpacity,
-    Alert,
-} from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
-import type { RouteProp } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useAuth } from "@/context/AuthContext";
+import { colors } from "@/assets/color";
 import api from "@/services/api";
 import type { Ingredient, Recipe, RootStackParamList } from "@/types";
+import type { RouteProp } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type RecipeDetailRouteProp = RouteProp<RootStackParamList, "RecipeDetail">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -21,10 +13,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const RecipeDetailScreen: React.FC = () => {
     const route = useRoute<RecipeDetailRouteProp>();
     const navigation = useNavigation<NavigationProp>();
-    const { user } = useAuth();
     const [recipe, setRecipe] = useState<Recipe | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
-    const [deleting, setDeleting] = useState<boolean>(false);
 
     useEffect(() => {
         fetchRecipe();
@@ -47,41 +37,10 @@ const RecipeDetailScreen: React.FC = () => {
         }
     };
 
-    const handleDelete = () => {
-        Alert.alert("Hapus Resep", "Anda yakin ingin menghapus resep ini?", [
-            { text: "Batal", style: "cancel" },
-            {
-                text: "Hapus",
-                style: "destructive",
-                onPress: async () => {
-                    if (!recipe) return;
-                    try {
-                        setDeleting(true);
-                        await api.recipes.delete(recipe.id);
-
-                        // Show success message
-                        Alert.alert("Success", "Resep telah dihapus", [
-                            {
-                                text: "OK",
-                                onPress: () => {
-                                    // Navigate back and the list will auto-refresh with useFocusEffect
-                                    navigation.goBack();
-                                },
-                            },
-                        ]);
-                    } catch (err: any) {
-                        Alert.alert("Error", err.message);
-                        setDeleting(false);
-                    }
-                },
-            },
-        ]);
-    };
-
     if (loading) {
         return (
             <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color="#ef4444" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -117,16 +76,33 @@ const RecipeDetailScreen: React.FC = () => {
         return [];
     };
 
-    const ingredientsList = getIngredientsList();
+    /**
+     * Format ingredient display text
+     * Handles all combinations of quantity/unit being present or null
+     */
+    const formatIngredientText = (ingredient: Ingredient): string => {
+        const parts: string[] = [];
 
-    const canDelete = recipe.user_id === user?.id;
+        // Add quantity if exists
+        if (ingredient.quantity !== null && ingredient.quantity !== undefined) {
+            parts.push(ingredient.quantity.toString());
+        }
+
+        // Add unit if exists
+        if (ingredient.unit !== null && ingredient.unit !== undefined && ingredient.unit.trim() !== "") {
+            parts.push(ingredient.unit);
+        }
+
+        // Add ingredient name
+        parts.push(ingredient.name);
+
+        return parts.join(" ");
+    };
+
+    const ingredientsList = getIngredientsList();
 
     return (
         <ScrollView style={styles.container}>
-            <View style={styles.iconContainer}>
-                <Text style={styles.icon}>🍽️</Text>
-            </View>
-
             <View style={styles.content}>
                 <View style={styles.header}>
                     <Text style={styles.title}>{recipe.name}</Text>
@@ -137,22 +113,44 @@ const RecipeDetailScreen: React.FC = () => {
 
                 {recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
 
-                {ingredientsList.map((ingredient: Ingredient, index: number) => (
-                    <View key={index} style={styles.ingredientItem}>
-                        <Text style={styles.bullet}>•</Text>
-                        <Text style={styles.ingredientText}>
-                            {ingredient.quantity && ingredient.unit && (
-                                <Text style={styles.bold}>
-                                    {ingredient.quantity} {ingredient.unit}{" "}
-                                </Text>
-                            )}
-                            {ingredient.name}
-                        </Text>
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Bahan-bahan</Text>
+                    <View style={styles.ingredientsBox}>
+                        {ingredientsList.map((ingredient: Ingredient, index: number) => {
+                            const hasQuantityOrUnit =
+                                (ingredient.quantity !== null && ingredient.quantity !== undefined) ||
+                                (ingredient.unit !== null &&
+                                    ingredient.unit !== undefined &&
+                                    ingredient.unit.trim() !== "");
+
+                            return (
+                                <View key={index} style={styles.ingredientItem}>
+                                    <Text style={styles.bullet}>•</Text>
+                                    <Text style={styles.ingredientText}>
+                                        {hasQuantityOrUnit && (
+                                            <>
+                                                <Text style={styles.bold}>
+                                                    {ingredient.quantity !== null && ingredient.quantity !== undefined
+                                                        ? `${ingredient.quantity} `
+                                                        : ""}
+                                                    {ingredient.unit !== null &&
+                                                    ingredient.unit !== undefined &&
+                                                    ingredient.unit.trim() !== ""
+                                                        ? `${ingredient.unit} `
+                                                        : ""}
+                                                </Text>
+                                            </>
+                                        )}
+                                        {ingredient.name}
+                                    </Text>
+                                </View>
+                            );
+                        })}
                     </View>
-                ))}
+                </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Instructions</Text>
+                    <Text style={styles.sectionTitle}>Instruksi</Text>
                     <View style={styles.instructionsBox}>
                         <Text style={styles.instructionsText}>{recipe.instructions}</Text>
                     </View>
@@ -165,23 +163,13 @@ const RecipeDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
+        backgroundColor: colors.background,
     },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         padding: 16,
-    },
-    iconContainer: {
-        width: "100%",
-        height: 200,
-        backgroundColor: "#ef4444",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    icon: {
-        fontSize: 80,
     },
     bold: {
         fontWeight: "bold",
@@ -199,22 +187,22 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 28,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
     },
     categoryTag: {
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.secondarySoft,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 12,
     },
     categoryText: {
-        color: "#b91c1c",
+        color: colors.secondary,
         fontSize: 14,
         fontWeight: "600",
     },
     description: {
         fontSize: 16,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginBottom: 24,
         lineHeight: 24,
     },
@@ -224,80 +212,64 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 12,
     },
     ingredientsBox: {
-        backgroundColor: "#f9fafb",
-        padding: 16,
+        backgroundColor: colors.surface,
+        padding: 14,
         borderRadius: 12,
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
     },
     ingredientItem: {
         flexDirection: "row",
         marginBottom: 8,
+        alignItems: "flex-start",
     },
     bullet: {
-        color: "#ef4444",
+        color: colors.textPrimary,
         marginRight: 8,
         fontSize: 16,
+        // marginTop: 2,
     },
     ingredientText: {
         flex: 1,
         fontSize: 14,
-        color: "#374151",
+        color: colors.textPrimary,
+        lineHeight: 20,
     },
     instructionsBox: {
-        backgroundColor: "#f9fafb",
-        padding: 16,
+        backgroundColor: colors.surface,
+        padding: 14,
         borderRadius: 12,
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
     },
     instructionsText: {
         fontSize: 14,
-        color: "#374151",
+        color: colors.textPrimary,
         lineHeight: 22,
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 16,
         marginBottom: 16,
     },
     backButton: {
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.primary,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     backButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
-    buttonContainer: {
-        flexDirection: "row",
-        gap: 12,
-        marginTop: 16,
-    },
-    editButton: {
-        flex: 1,
-        backgroundColor: "#1e40af",
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    editButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-    },
-    deleteButton: {
-        flex: 1,
-        backgroundColor: "#dc2626",
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    deleteButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "bold",
         fontSize: 16,
     },

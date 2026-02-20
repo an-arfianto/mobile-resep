@@ -1,8 +1,9 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { colors } from "@/assets/color";
+import type { Ingredient, Recipe, RootStackParamList } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { Recipe, RootStackParamList, Ingredient } from "@/types";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -17,28 +18,38 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
         navigation.navigate("RecipeDetail", { recipeId: recipe.id });
     };
 
-    // type checking untuk bahan
+    // Format ingredient properly without extra spaces
+    const formatIngredient = (ing: Ingredient): string => {
+        const parts: string[] = [];
+
+        // Add quantity if exists
+        if (ing.quantity !== null && ing.quantity !== undefined) {
+            parts.push(ing.quantity.toString());
+        }
+
+        // Add unit if exists and not empty
+        if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
+            parts.push(ing.unit);
+        }
+
+        // Add ingredient name
+        parts.push(ing.name);
+
+        return parts.join(" ");
+    };
+
+    // Get ingredients display string
     const getIngredientsDisplay = (): string => {
         if (!recipe.ingredients) return "";
 
-        // string
+        // If string, return as is
         if (typeof recipe.ingredients === "string") {
             return recipe.ingredients;
         }
 
-        // array
+        // If array, format each ingredient properly
         if (Array.isArray(recipe.ingredients)) {
-            return recipe.ingredients
-                .map((ing: Ingredient) => {
-                    if (ing.quantity && ing.unit) {
-                        return `${ing.quantity} ${ing.unit} ${ing.name}`;
-                    } else if (ing.quantity) {
-                        return `${ing.quantity} ${ing.name}`;
-                    } else {
-                        return ing.name;
-                    }
-                })
-                .join(", ");
+            return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
         }
 
         return "";
@@ -46,10 +57,6 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 
     return (
         <TouchableOpacity style={styles.card} onPress={handlePress}>
-            <View style={styles.iconContainer}>
-                <Text style={styles.icon}>🍽️</Text>
-            </View>
-
             <Text style={styles.title}>{recipe.name}</Text>
 
             <View style={styles.tagContainer}>
@@ -76,32 +83,20 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
-        shadowColor: "#000",
+        shadowColor: colors.border,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowRadius: 3,
         elevation: 3,
-    },
-    iconContainer: {
-        width: "100%",
-        height: 120,
-        backgroundColor: "#ef4444",
-        borderRadius: 8,
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 12,
-    },
-    icon: {
-        fontSize: 48,
     },
     title: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 8,
     },
     tagContainer: {
@@ -110,40 +105,40 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     categoryTag: {
-        backgroundColor: "#fee2e2",
+        backgroundColor: colors.secondarySoft,
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
     },
     categoryText: {
-        color: "#b91c1c",
+        color: colors.secondary,
         fontSize: 12,
         fontWeight: "600",
     },
     matchTag: {
-        backgroundColor: "#dcfce7",
+        backgroundColor: colors.successSoft,
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
     },
     matchText: {
-        color: "#15803d",
+        color: colors.success,
         fontSize: 12,
         fontWeight: "600",
     },
     ingredients: {
         fontSize: 14,
-        color: "#666",
+        color: colors.textSecondary,
         marginBottom: 12,
     },
     button: {
-        backgroundColor: "#ef4444",
+        backgroundColor: colors.primarySoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
     },
     buttonText: {
-        color: "#fff",
+        color: colors.primary,
         fontWeight: "bold",
         fontSize: 14,
     },

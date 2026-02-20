@@ -1,19 +1,12 @@
-import React, { useState, useCallback } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-} from "react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { colors } from "@/assets/color";
 import { useAuth } from "@/context/AuthContext";
-import Header from "@/components/Header";
 import api from "@/services/api";
 import type { RootStackParamList } from "@/types";
+import { Feather } from "@expo/vector-icons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useCallback, useState } from "react";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -54,9 +47,8 @@ const AdminDashboardScreen: React.FC = () => {
     if (loading && !refreshing) {
         return (
             <View style={styles.container}>
-                <Header title="Admin Dashboard" />
                 <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color="#dc2626" />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             </View>
         );
@@ -65,7 +57,6 @@ const AdminDashboardScreen: React.FC = () => {
     if (error) {
         return (
             <View style={styles.container}>
-                <Header title="Admin Dashboard" />
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={fetchStats}>
@@ -78,69 +69,98 @@ const AdminDashboardScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            <Header title="Admin Dashboard" />
             <ScrollView
                 style={styles.scrollContainer}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={["#dc2626"]}
-                        tintColor="#dc2626"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
                     />
                 }
             >
+                {/* Welcome Section */}
                 <View style={styles.welcomeSection}>
                     <Text style={styles.welcomeText}>Selamat datang, {user?.username}!</Text>
                     <Text style={styles.welcomeSubtext}>Admin Dashboard</Text>
                 </View>
 
-                <View style={styles.statsGrid}>
-                    <View style={[styles.statCard, styles.blueCard]}>
-                        <Text style={styles.statValue}>{stats?.totalUsers || 0}</Text>
-                        <Text style={styles.statLabel}>Total User</Text>
+                {/* Main Stats Grid - 2x2 */}
+                <View style={styles.mainStatsContainer}>
+                    <View style={styles.statsRow}>
+                        {/* Total Users */}
+                        <View style={styles.statCard}>
+                            <Feather name="users" size={32} color={colors.primary} />
+                            <Text style={styles.statValue}>{stats?.totalUsers || 0}</Text>
+                            <Text style={styles.statLabel}>Total Users</Text>
+                        </View>
+
+                        {/* Total Recipes */}
+                        <View style={styles.statCard}>
+                            <Feather name="book-open" size={32} color={colors.primary} />
+                            <Text style={styles.statValue}>{stats?.totalRecipes || 0}</Text>
+                            <Text style={styles.statLabel}>Total Resep</Text>
+                        </View>
                     </View>
-                    <View style={[styles.statCard, styles.greenCard]}>
-                        <Text style={styles.statValue}>{stats?.totalRecipes || 0}</Text>
-                        <Text style={styles.statLabel}>Total Resep</Text>
-                    </View>
-                    <View style={[styles.statCard, styles.purpleCard]}>
-                        <Text style={styles.statValue}>
-                            {stats?.recipesByCategory?.length || 0}
-                        </Text>
-                        <Text style={styles.statLabel}>Kategori</Text>
+
+                    <View style={styles.statsRow}>
+                        {/* Categories */}
+                        <View style={styles.statCard}>
+                            <Feather name="grid" size={32} color={colors.primary} />
+                            <Text style={styles.statValue}>{stats?.recipesByCategory?.length || 0}</Text>
+                            <Text style={styles.statLabel}>Kategori</Text>
+                        </View>
+
+                        {/* Pending Recipes */}
+                        <View style={styles.statCard}>
+                            <Feather name="clock" size={32} color={colors.primary} />
+                            <Text style={styles.statValue}>{stats?.pendingRecipes || 0}</Text>
+                            <Text style={styles.statLabel}>Pending</Text>
+                        </View>
                     </View>
                 </View>
 
+                {/* Quick Actions - 2 columns */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Menu</Text>
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => navigation.navigate("AdminUsers")}
-                    >
-                        <Text style={styles.actionTitle}>Kelola User</Text>
-                        <Text style={styles.actionDesc}>Kelola semua user</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => navigation.navigate("AdminRecipes")}
-                    >
-                        <Text style={styles.actionTitle}>Kelola Resep</Text>
-                        <Text style={styles.actionDesc}>Kelola semua resep</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.sectionTitle}>Menu Cepat</Text>
+                    <View style={styles.actionsRow}>
+                        <TouchableOpacity
+                            style={[styles.actionCard, styles.actionCardHalf]}
+                            onPress={() => navigation.navigate("AdminUsers")}
+                        >
+                            <View style={styles.actionIcon}>
+                                <Feather name="users" size={28} color={colors.primary} />
+                            </View>
+                            <Text style={styles.actionTitle}>Kelola User</Text>
+                            <Text style={styles.actionDesc}>{stats?.totalUsers || 0} users</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.actionCard, styles.actionCardHalf]}
+                            onPress={() => navigation.navigate("AdminRecipes")}
+                        >
+                            <View style={styles.actionIcon}>
+                                <Feather name="book-open" size={28} color={colors.primary} />
+                            </View>
+                            <Text style={styles.actionTitle}>Kelola Resep</Text>
+                            <Text style={styles.actionDesc}>{stats?.totalRecipes || 0} resep</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
+                {/* Categories Breakdown - Compact 2-column grid */}
                 {stats?.recipesByCategory && stats.recipesByCategory.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Total Resep</Text>
-                        {stats.recipesByCategory.map((cat: any) => (
-                            <View key={cat.category} style={styles.categoryRow}>
-                                <Text style={styles.categoryName}>{cat.category}</Text>
-                                <View style={styles.categoryBadge}>
+                        <Text style={styles.sectionTitle}>Resep per Kategori</Text>
+                        <View style={styles.categoriesGrid}>
+                            {stats.recipesByCategory.map((cat: any) => (
+                                <View key={cat.category} style={styles.categoryCard}>
                                     <Text style={styles.categoryCount}>{cat.count}</Text>
+                                    <Text style={styles.categoryName}>{cat.category}</Text>
                                 </View>
-                            </View>
-                        ))}
+                            ))}
+                        </View>
                     </View>
                 )}
             </ScrollView>
@@ -151,7 +171,7 @@ const AdminDashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f9f5d7",
+        backgroundColor: colors.background,
     },
     scrollContainer: {
         flex: 1,
@@ -163,51 +183,54 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     welcomeSection: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
+        borderBottomColor: colors.divider,
     },
     welcomeText: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
     },
     welcomeSubtext: {
         fontSize: 14,
-        color: "#6b7280",
+        color: colors.textSecondary,
         marginTop: 4,
     },
-    statsGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+    mainStatsContainer: {
         padding: 16,
+    },
+    statsRow: {
+        flexDirection: "row",
         gap: 12,
+        marginBottom: 12,
     },
     statCard: {
         flex: 1,
-        minWidth: 100,
         padding: 20,
         borderRadius: 12,
         alignItems: "center",
-    },
-    blueCard: {
-        backgroundColor: "#dbeafe",
-    },
-    greenCard: {
-        backgroundColor: "#dcfce7",
-    },
-    purpleCard: {
-        backgroundColor: "#f3e8ff",
+        justifyContent: "center",
+        minHeight: 100,
+        backgroundColor: colors.surface,
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
+        gap: 8,
     },
     statValue: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: "bold",
+        color: colors.textPrimary,
         marginBottom: 4,
     },
     statLabel: {
         fontSize: 12,
         fontWeight: "600",
+        color: colors.textSecondary,
         textTransform: "uppercase",
         textAlign: "center",
     },
@@ -215,69 +238,94 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     sectionTitle: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: "bold",
+        color: colors.textPrimary,
         marginBottom: 12,
+    },
+    actionsRow: {
+        flexDirection: "row",
+        gap: 12,
     },
     actionCard: {
-        backgroundColor: "#fff",
+        backgroundColor: colors.surface,
         padding: 16,
         borderRadius: 12,
-        marginBottom: 12,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    actionCardHalf: {
+        flex: 1,
+        alignItems: "center",
+    },
+    actionIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.overlay,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 12,
     },
     actionTitle: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: "bold",
-        color: "#111",
+        color: colors.textPrimary,
         marginBottom: 4,
+        textAlign: "center",
     },
     actionDesc: {
-        fontSize: 14,
-        color: "#6b7280",
+        fontSize: 12,
+        color: colors.textSecondary,
+        textAlign: "center",
     },
-    categoryRow: {
+    categoriesGrid: {
         flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        backgroundColor: "#f3f4f6",
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 8,
+        flexWrap: "wrap",
+        gap: 12,
     },
-    categoryName: {
-        fontSize: 14,
-        fontWeight: "500",
-    },
-    categoryBadge: {
-        backgroundColor: "#fee2e2",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
+    categoryCard: {
+        flex: 1,
+        minWidth: "45%",
+        backgroundColor: colors.surface,
+        padding: 16,
         borderRadius: 12,
+        alignItems: "center",
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
     },
     categoryCount: {
-        color: "#b91c1c",
+        fontSize: 28,
         fontWeight: "bold",
-        fontSize: 12,
+        color: colors.textPrimary,
+        marginBottom: 4,
+    },
+    categoryName: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: colors.textPrimary,
+        textAlign: "center",
     },
     errorText: {
-        color: "#dc2626",
+        color: colors.error,
         fontSize: 14,
         textAlign: "center",
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: "#dc2626",
+        backgroundColor: colors.error,
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
     },
     retryButtonText: {
-        color: "#fff",
+        color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
     },
