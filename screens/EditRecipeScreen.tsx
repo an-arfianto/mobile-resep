@@ -64,13 +64,11 @@ const EditRecipeScreen: React.FC = () => {
             const response = await api.recipes.getById(recipeId);
             const recipe = response.data as Recipe;
 
-            // Populate form
             setName(recipe.name);
             setCategory(recipe.category);
             setDescription(recipe.description || "");
             setInstructions(recipe.instructions || "");
 
-            // Handle ingredients
             if (Array.isArray(recipe.ingredients)) {
                 setIngredients(
                     recipe.ingredients.map((ing: Ingredient) => ({
@@ -80,7 +78,6 @@ const EditRecipeScreen: React.FC = () => {
                     })),
                 );
             } else if (typeof recipe.ingredients === "string") {
-                // Parse string format
                 const parsed = recipe.ingredients.split(",").map((item: string) => ({
                     name: item.trim(),
                     quantity: null,
@@ -89,6 +86,7 @@ const EditRecipeScreen: React.FC = () => {
                 setIngredients(parsed.length > 0 ? parsed : [{ name: "", quantity: null, unit: "" }]);
             }
         } catch (err: any) {
+            if (err.cancelled) return;
             Alert.alert("Error", err.message, [{ text: "Kembali", onPress: () => navigation.goBack() }]);
         } finally {
             setLoadingRecipe(false);
@@ -175,11 +173,14 @@ const EditRecipeScreen: React.FC = () => {
                     <View style={styles.pickerContainer}>
                         <Picker selectedValue={category} onValueChange={setCategory} style={styles.picker}>
                             <Picker.Item label="Pilih Kategori" value="" />
-                            <Picker.Item label="Appetizer" value="Appetizer" />
-                            <Picker.Item label="Main Course" value="Main Course" />
-                            <Picker.Item label="Dessert" value="Dessert" />
-                            <Picker.Item label="Beverage" value="Beverage" />
-                            <Picker.Item label="Snack" value="Snack" />
+                            <Picker.Item label="Masakan Utama" value="Masakan Utama" />
+                            <Picker.Item label="Makanan Pembuka" value="Makanan Pembuka" />
+                            <Picker.Item label="Makanan Penutup" value="Makanan Penutup" />
+                            <Picker.Item label="Salad" value="Salad" />
+                            <Picker.Item label="Kue" value="Kue" />
+                            <Picker.Item label="Sup" value="Sup" />
+                            <Picker.Item label="Minuman" value="Minuman" />
+                            <Picker.Item label="Cemilan" value="Cemilan" />
                         </Picker>
                     </View>
 
@@ -267,6 +268,8 @@ const EditRecipeScreen: React.FC = () => {
     );
 };
 
+const INPUT_HEIGHT = 48;
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -305,29 +308,35 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
+        height: INPUT_HEIGHT,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
-        padding: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 0,
         fontSize: 14,
         marginBottom: 16,
         color: colors.textPrimary,
         backgroundColor: colors.inputBackground,
     },
     textArea: {
-        minHeight: 80,
+        height: undefined,
+        minHeight: 100,
+        paddingVertical: 12,
         textAlignVertical: "top",
     },
     pickerContainer: {
+        height: INPUT_HEIGHT,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
         backgroundColor: colors.inputBackground,
         marginBottom: 16,
         overflow: "hidden",
+        justifyContent: "center",
     },
     picker: {
-        height: 50,
+        height: INPUT_HEIGHT,
         color: colors.textPrimary,
     },
     ingredientRow: {
@@ -337,11 +346,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     qtyInput: {
-        width: 70,
+        width: 80,
         marginBottom: 0,
     },
     unitPicker: {
-        width: 100,
+        width: 110,
         marginBottom: 0,
     },
     nameInput: {
@@ -363,7 +372,7 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: colors.successSoft,
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
         marginBottom: 16,
@@ -379,7 +388,7 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 14,
         borderRadius: 8,
         alignItems: "center",
     },

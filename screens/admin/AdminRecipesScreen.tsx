@@ -34,9 +34,9 @@ const AdminRecipesScreen: React.FC = () => {
             setError(null);
             const response = await api.admin.getRecipes();
             setRecipes(response.data);
-            setDisplayCount(10); // Reset to initial count
+            setDisplayCount(10);
         } catch (err: any) {
-            console.error("Error fetching recipes:", err);
+            if (err.cancelled) return;
             setError(err.message || "Failed to load recipes");
         } finally {
             setLoading(false);
@@ -45,7 +45,9 @@ const AdminRecipesScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchRecipes();
+            return () => controller.abort();
         }, []),
     );
 
@@ -60,7 +62,7 @@ const AdminRecipesScreen: React.FC = () => {
     };
 
     const deleteRecipe = (id: number, name: string) => {
-        Alert.alert("Hapus Resep", `Anda yakin menghapus "${name}"?`, [
+        Alert.alert("Hapus Resep", `Anda yakin ingin menghapus "${name}"?`, [
             { text: "Batal", style: "cancel" },
             {
                 text: "Hapus",
@@ -129,10 +131,6 @@ const AdminRecipesScreen: React.FC = () => {
                     />
                 }
             >
-                <View style={styles.headerInfo}>
-                    <Text style={styles.totalText}>Total: {recipes.length} resep</Text>
-                </View>
-
                 {recipes.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>Tidak ada resep</Text>
@@ -203,18 +201,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
-    },
-    headerInfo: {
-        backgroundColor: colors.primarySoft,
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-    },
-    totalText: {
-        color: colors.primary,
-        fontSize: 14,
-        fontWeight: "600",
-        textAlign: "center",
     },
     recipeCard: {
         backgroundColor: colors.surface,

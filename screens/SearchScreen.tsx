@@ -21,7 +21,7 @@ const SearchScreen: React.FC = () => {
             .filter(Boolean);
 
         if (ingredients.length === 0) {
-            alert("Isi minimal 1 bahan");
+            alert("Masukan minimal 1 bahan");
             return;
         }
 
@@ -38,7 +38,7 @@ const SearchScreen: React.FC = () => {
                 .filter(Boolean);
 
             if (excluded.length === 0) {
-                alert("Isi bahan yang tidak diinginkan saat menggunakan NOT");
+                alert("Masukan bahan yang tidak diinginkan saat menggunakan NOT");
                 return;
             }
             searchData.excludedIngredients = excluded;
@@ -50,6 +50,7 @@ const SearchScreen: React.FC = () => {
             setSearchResult(result);
             setSearched(true);
         } catch (err: any) {
+            if (err.cancelled) return;
             alert(err.message);
         } finally {
             setLoading(false);

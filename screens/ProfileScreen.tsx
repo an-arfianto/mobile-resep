@@ -42,7 +42,7 @@ const ProfileScreen: React.FC = () => {
             setProfile(response.data);
             setNewUsername(response.data.username);
         } catch (err: any) {
-            console.error("Error fetching profile:", err);
+            if (err.cancelled) return;
             setError(err.message || "Failed to load profile");
         } finally {
             setLoading(false);
@@ -51,7 +51,9 @@ const ProfileScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchProfile();
+            return () => controller.abort();
         }, []),
     );
 
@@ -166,7 +168,7 @@ const ProfileScreen: React.FC = () => {
     if (loading && !refreshing) {
         return (
             <View style={styles.container}>
-                <Header title="My Profile" />
+                <Header title="Profil Saya" />
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
@@ -225,7 +227,6 @@ const ProfileScreen: React.FC = () => {
             >
                 {activeTab === "info" && (
                     <>
-                        {/* Profile Header */}
                         <View style={styles.profileHeader}>
                             <View style={styles.avatar}>
                                 <Text style={styles.avatarText}>{profile?.username?.charAt(0).toUpperCase()}</Text>
@@ -237,17 +238,14 @@ const ProfileScreen: React.FC = () => {
                             <Text style={styles.memberSince}>Bergabung {formatDate(profile?.created_at)}</Text>
                         </View>
 
-                        {/* Admin: No Stats (just profile info) */}
                         {isAdmin && (
                             <View style={styles.adminInfoCard}>
                                 <Text style={styles.adminInfoText}>Anda adalah admin dengan akses penuh ke sistem</Text>
                             </View>
                         )}
 
-                        {/* Moderator: Dual Stats */}
                         {isModerator && (
                             <>
-                                {/* Moderation Activity Stats */}
                                 <View style={styles.statsCard}>
                                     <Text style={styles.sectionTitle}>Aktivitas Moderasi</Text>
                                     <View style={styles.statsGrid}>
@@ -269,16 +267,9 @@ const ProfileScreen: React.FC = () => {
                                             </Text>
                                             <Text style={styles.statLabel}>Ditolak</Text>
                                         </View>
-                                        <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: colors.warning }]}>
-                                                {profile?.pending_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Menunggu Review</Text>
-                                        </View>
                                     </View>
                                 </View>
 
-                                {/* Personal Recipe Stats */}
                                 <View style={styles.statsCard}>
                                     <Text style={styles.sectionTitle}>Resep Saya</Text>
                                     <View style={styles.statsGrid}>
@@ -311,7 +302,6 @@ const ProfileScreen: React.FC = () => {
                             </>
                         )}
 
-                        {/* Regular User: Recipe Stats Only */}
                         {isRegularUser && (
                             <View style={styles.statsCard}>
                                 <Text style={styles.sectionTitle}>Statistik Resep</Text>
@@ -348,7 +338,6 @@ const ProfileScreen: React.FC = () => {
 
                 {activeTab === "settings" && (
                     <>
-                        {/* Username Section */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Username</Text>
@@ -396,7 +385,6 @@ const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
-                        {/* Password Section */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Password</Text>
@@ -462,7 +450,6 @@ const ProfileScreen: React.FC = () => {
                             )}
                         </View>
 
-                        {/* Logout Button */}
                         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
                             <Text style={styles.logoutButtonText}>Keluar</Text>
                         </TouchableOpacity>
@@ -490,6 +477,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
+        backgroundColor: colors.background,
     },
     tabContainer: {
         flexDirection: "row",
@@ -597,7 +585,7 @@ const styles = StyleSheet.create({
     },
     statItem: {
         alignItems: "center",
-        width: "45%",
+        width: "33%",
         marginBottom: 12,
     },
     statValue: {
@@ -653,25 +641,25 @@ const styles = StyleSheet.create({
     },
     cancelButton: {
         flex: 1,
-        backgroundColor: colors.error,
+        backgroundColor: colors.errorSoft,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     cancelButtonText: {
-        color: colors.textInverse,
+        color: colors.error,
         fontWeight: "600",
         fontSize: 15,
     },
     saveButton: {
         flex: 1,
-        backgroundColor: colors.success,
+        backgroundColor: colors.successSoft,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
     },
     saveButtonText: {
-        color: colors.textInverse,
+        color: colors.success,
         fontWeight: "600",
         fontSize: 15,
     },

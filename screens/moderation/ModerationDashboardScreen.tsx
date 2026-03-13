@@ -1,6 +1,5 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
 import type { ModerationStats, RootStackParamList } from "@/types";
 import { Feather } from "@expo/vector-icons";
@@ -19,7 +18,6 @@ const ModerationDashboardScreen: React.FC = () => {
         approved: 0,
         rejected: 0,
     });
-    const { user } = useAuth();
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -31,6 +29,7 @@ const ModerationDashboardScreen: React.FC = () => {
             const response = await api.moderation.getStats();
             setStats(response.data);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -45,7 +44,9 @@ const ModerationDashboardScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchStats();
+            return () => controller.abort();
         }, []),
     );
 
@@ -88,7 +89,6 @@ const ModerationDashboardScreen: React.FC = () => {
             >
                 <View style={styles.mainStatsContainer}>
                     <View style={styles.statsRow}>
-                        {/* Total Recipes */}
                         <View style={styles.statCard}>
                             <Feather name="bar-chart-2" size={32} color={colors.primary} />
                             <Text style={styles.statValue}>{stats.total}</Text>
@@ -181,6 +181,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
+        backgroundColor: colors.surface,
     },
     welcomeSection: {
         backgroundColor: colors.surface,

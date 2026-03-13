@@ -26,7 +26,6 @@ const AdminUsersScreen: React.FC = () => {
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
-    // Sorting state
     const [sortColumn, setSortColumn] = useState<SortColumn>("created_at");
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -38,7 +37,7 @@ const AdminUsersScreen: React.FC = () => {
             setUsers(response.data);
             setDisplayCount(10);
         } catch (err: any) {
-            console.error("Error", err);
+            if (err.cancelled) return;
             setError(err.message || "User tidak tersedia");
         } finally {
             setLoading(false);
@@ -47,7 +46,9 @@ const AdminUsersScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchUsers();
+            return () => controller.abort();
         }, []),
     );
 
@@ -61,7 +62,6 @@ const AdminUsersScreen: React.FC = () => {
         setDisplayCount((prev) => Math.min(prev + itemsPerPage, users.length));
     };
 
-    // Sorting function
     const handleSort = (column: SortColumn) => {
         if (sortColumn === column) {
             setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -72,7 +72,6 @@ const AdminUsersScreen: React.FC = () => {
         setDisplayCount(10);
     };
 
-    // Sorted users
     const sortedUsers = useMemo(() => {
         const sorted = [...users];
 
@@ -80,17 +79,14 @@ const AdminUsersScreen: React.FC = () => {
             let aVal = a[sortColumn];
             let bVal = b[sortColumn];
 
-            // Handle null/undefined
             if (aVal === null || aVal === undefined) aVal = 0;
             if (bVal === null || bVal === undefined) bVal = 0;
 
-            // Handle tanggal bergabung
             if (sortColumn === "created_at") {
                 aVal = new Date(aVal).getTime();
                 bVal = new Date(bVal).getTime();
             }
 
-            // Sort logic
             if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
             if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
             return 0;
@@ -250,10 +246,6 @@ const AdminUsersScreen: React.FC = () => {
                     />
                 }
             >
-                <View style={styles.headerInfo}>
-                    <Text style={styles.totalText}>Total: {users.length} users</Text>
-                </View>
-
                 <View style={styles.sortContainer}>
                     <Text style={styles.sortLabel}>Urutkan:</Text>
                     <TouchableOpacity
@@ -359,18 +351,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 20,
-    },
-    headerInfo: {
-        backgroundColor: colors.successSoft,
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 12,
-    },
-    totalText: {
-        color: colors.success,
-        fontSize: 14,
-        fontWeight: "600",
-        textAlign: "center",
     },
     sortContainer: {
         flexDirection: "row",

@@ -25,7 +25,7 @@ const AdminDashboardScreen: React.FC = () => {
             const response = await api.admin.getStats();
             setStats(response.data);
         } catch (err: any) {
-            console.error("Error fetching admin stats:", err);
+            if (err.cancelled) return;
             setError(err.message || "Failed to load statistics");
         } finally {
             setLoading(false);
@@ -34,7 +34,9 @@ const AdminDashboardScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchStats();
+            return () => controller.abort();
         }, []),
     );
 
@@ -80,23 +82,19 @@ const AdminDashboardScreen: React.FC = () => {
                     />
                 }
             >
-                {/* Welcome Section */}
                 <View style={styles.welcomeSection}>
                     <Text style={styles.welcomeText}>Selamat datang, {user?.username}!</Text>
                     <Text style={styles.welcomeSubtext}>Admin Dashboard</Text>
                 </View>
 
-                {/* Main Stats Grid - 2x2 */}
                 <View style={styles.mainStatsContainer}>
                     <View style={styles.statsRow}>
-                        {/* Total Users */}
                         <View style={styles.statCard}>
                             <Feather name="users" size={32} color={colors.primary} />
                             <Text style={styles.statValue}>{stats?.totalUsers || 0}</Text>
                             <Text style={styles.statLabel}>Total Users</Text>
                         </View>
 
-                        {/* Total Recipes */}
                         <View style={styles.statCard}>
                             <Feather name="book-open" size={32} color={colors.primary} />
                             <Text style={styles.statValue}>{stats?.totalRecipes || 0}</Text>
@@ -105,14 +103,12 @@ const AdminDashboardScreen: React.FC = () => {
                     </View>
 
                     <View style={styles.statsRow}>
-                        {/* Categories */}
                         <View style={styles.statCard}>
                             <Feather name="grid" size={32} color={colors.primary} />
                             <Text style={styles.statValue}>{stats?.recipesByCategory?.length || 0}</Text>
                             <Text style={styles.statLabel}>Kategori</Text>
                         </View>
 
-                        {/* Pending Recipes */}
                         <View style={styles.statCard}>
                             <Feather name="clock" size={32} color={colors.primary} />
                             <Text style={styles.statValue}>{stats?.pendingRecipes || 0}</Text>
@@ -121,7 +117,6 @@ const AdminDashboardScreen: React.FC = () => {
                     </View>
                 </View>
 
-                {/* Quick Actions - 2 columns */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Menu Cepat</Text>
                     <View style={styles.actionsRow}>
@@ -149,7 +144,6 @@ const AdminDashboardScreen: React.FC = () => {
                     </View>
                 </View>
 
-                {/* Categories Breakdown - Compact 2-column grid */}
                 {stats?.recipesByCategory && stats.recipesByCategory.length > 0 && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Resep per Kategori</Text>

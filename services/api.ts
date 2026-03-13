@@ -13,7 +13,7 @@ import type {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
-const API_URL = "http://10.24.82.216:3000/api"; // Local IP
+const API_URL = "http://10.50.120.216:3000/api"; // Local IP
 // const API_URL = "https://watercolour-suzi-unexpansive.ngrok-free.dev/api"; // Public IP
 
 const api: AxiosInstance = axios.create({
@@ -24,7 +24,7 @@ const api: AxiosInstance = axios.create({
     },
 });
 
-// Request interceptor
+// request interceptor
 api.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
         const token = await AsyncStorage.getItem("token");
@@ -42,6 +42,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response: AxiosResponse) => response.data,
     (error) => {
+        if (axios.isCancel(error)) {
+            // request batal
+            return Promise.reject({ message: "cancelled", cancelled: true });
+        }
         const message = error.response?.data?.message || "Terjadi kesalahan";
         return Promise.reject({ message, status: error.response?.status });
     },
@@ -53,60 +57,59 @@ export default {
 
         login: (data: LoginCredentials): Promise<AuthResponse> => api.post("/users/login", data),
 
-        getCurrentUser: (): Promise<{
+        getCurrentUser: (
+            signal?: AbortSignal,
+        ): Promise<{
             success: boolean;
             message: string;
             data: User;
-        }> => api.get("/users/me"),
+        }> => api.get("/users/me", { signal }),
     },
 
     recipes: {
-        getAll: (params?: Record<string, any>): Promise<RecipeResponse> =>
-            api.get("/recipes", { params }),
+        getAll: (params?: Record<string, any>, signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get("/recipes", { params, signal }),
 
-        getMy: (): Promise<RecipeResponse> => api.get("/recipes/my"),
+        getMy: (signal?: AbortSignal): Promise<RecipeResponse> => api.get("/recipes/my", { signal }),
 
-        getById: (id: number): Promise<RecipeResponse> => api.get(`/recipes/${id}`),
+        getById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> => api.get(`/recipes/${id}`, { signal }),
 
         search: (data: SearchCriteria): Promise<SearchResponse> => api.post("/search", data),
 
         create: (data: CreateRecipeData): Promise<RecipeResponse> => api.post("/recipes", data),
 
-        update: (id: number, data: CreateRecipeData): Promise<RecipeResponse> =>
-            api.put(`/recipes/${id}`, data),
+        update: (id: number, data: CreateRecipeData): Promise<RecipeResponse> => api.put(`/recipes/${id}`, data),
 
-        delete: (id: number): Promise<{ success: boolean; message: string }> =>
-            api.delete(`/recipes/${id}`),
+        delete: (id: number): Promise<{ success: boolean; message: string }> => api.delete(`/recipes/${id}`),
     },
 
     moderation: {
-        getStats: (): Promise<ModerationStatsResponse> => api.get("/moderation/stats"),
+        getStats: (signal?: AbortSignal): Promise<ModerationStatsResponse> => api.get("/moderation/stats", { signal }),
 
-        getPending: (): Promise<ModerationRecipesResponse> => api.get("/moderation/pending"),
+        getPending: (signal?: AbortSignal): Promise<ModerationRecipesResponse> =>
+            api.get("/moderation/pending", { signal }),
 
         getByStatus: (
             status: "pending" | "approved" | "rejected",
-        ): Promise<ModerationRecipesResponse> =>
-            api.get("/moderation/recipes", { params: { status } }),
+            signal?: AbortSignal,
+        ): Promise<ModerationRecipesResponse> => api.get("/moderation/recipes", { params: { status }, signal }),
 
-        getAllRecipes: (): Promise<ModerationRecipesResponse> => api.get("/moderation/recipes/all"),
+        getAllRecipes: (signal?: AbortSignal): Promise<ModerationRecipesResponse> =>
+            api.get("/moderation/recipes/all", { signal }),
 
-        getRecipeById: (id: number): Promise<RecipeResponse> =>
-            api.get(`/moderation/recipes/${id}`),
+        getRecipeById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get(`/moderation/recipes/${id}`, { signal }),
 
-        approve: (id: number): Promise<RecipeResponse> =>
-            api.put(`/moderation/recipes/${id}/approve`),
+        approve: (id: number): Promise<RecipeResponse> => api.put(`/moderation/recipes/${id}/approve`),
 
         reject: (id: number, reason?: string): Promise<RecipeResponse> =>
             api.put(`/moderation/recipes/${id}/reject`, { reason }),
     },
 
     profile: {
-        getProfile: (): Promise<{ success: boolean; data: any }> => api.get("/profile"),
+        getProfile: (signal?: AbortSignal): Promise<{ success: boolean; data: any }> => api.get("/profile", { signal }),
 
-        updateProfile: (
-            username: string,
-        ): Promise<{ success: boolean; message: string; data: any }> =>
+        updateProfile: (username: string): Promise<{ success: boolean; message: string; data: any }> =>
             api.put("/profile", { username }),
 
         updatePassword: (
@@ -117,18 +120,20 @@ export default {
     },
 
     admin: {
-        getStats: (): Promise<{ success: boolean; message: string; data: any }> =>
-            api.get("/admin/stats"),
+        getStats: (signal?: AbortSignal): Promise<{ success: boolean; message: string; data: any }> =>
+            api.get("/admin/stats", { signal }),
 
-        getUsers: (): Promise<{ success: boolean; message: string; count: number; data: any[] }> =>
-            api.get("/admin/users"),
+        getUsers: (signal?: AbortSignal): Promise<{ success: boolean; message: string; count: number; data: any[] }> =>
+            api.get("/admin/users", { signal }),
 
-        getRecipes: (): Promise<{
+        getRecipes: (
+            signal?: AbortSignal,
+        ): Promise<{
             success: boolean;
             message: string;
             count: number;
             data: any[];
-        }> => api.get("/admin/recipes"),
+        }> => api.get("/admin/recipes", { signal }),
 
         deleteRecipe: (id: number): Promise<{ success: boolean; message: string }> =>
             api.delete(`/admin/recipes/${id}`),

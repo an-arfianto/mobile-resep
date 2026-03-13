@@ -11,6 +11,7 @@ import {
     Modal,
     RefreshControl,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -36,6 +37,7 @@ const ModerationAllScreen: React.FC = () => {
             setRecipes(response.data);
             setDisplayCount(10);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -50,7 +52,9 @@ const ModerationAllScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchAllRecipes();
+            return () => controller.abort();
         }, []),
     );
 
@@ -132,7 +136,6 @@ const ModerationAllScreen: React.FC = () => {
         <View style={styles.container}>
             <Header title="Semua Resep" />
 
-            {/* Filter Tabs */}
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -212,7 +215,6 @@ const ModerationAllScreen: React.FC = () => {
                 )}
             </ScrollView>
 
-            {/* Detail Modal - Same as before */}
             <Modal
                 visible={detailModalVisible}
                 animationType="slide"
@@ -289,7 +291,6 @@ const ModerationAllScreen: React.FC = () => {
     );
 };
 
-// Styles remain the same...
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -299,7 +300,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.surface,
+        backgroundColor: colors.background,
     },
     filterContainer: {
         backgroundColor: colors.surface,
@@ -463,6 +464,7 @@ const styles = StyleSheet.create({
     modalContainer: {
         flex: 1,
         backgroundColor: colors.surface,
+        paddingTop: StatusBar.currentHeight,
     },
     modalHeader: {
         flexDirection: "row",

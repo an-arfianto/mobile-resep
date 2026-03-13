@@ -119,11 +119,14 @@ const CreateRecipeScreen: React.FC = () => {
                     <View style={styles.pickerContainer}>
                         <Picker selectedValue={category} onValueChange={setCategory} style={styles.picker}>
                             <Picker.Item label="Pilih Kategori" value="" />
-                            <Picker.Item label="Appetizer" value="Appetizer" />
-                            <Picker.Item label="Main Course" value="Main Course" />
-                            <Picker.Item label="Dessert" value="Dessert" />
-                            <Picker.Item label="Beverage" value="Beverage" />
-                            <Picker.Item label="Snack" value="Snack" />
+                            <Picker.Item label="Masakan Utama" value="Masakan Utama" />
+                            <Picker.Item label="Makanan Pembuka" value="Makanan Pembuka" />
+                            <Picker.Item label="Makanan Penutup" value="Makanan Penutup" />
+                            <Picker.Item label="Salad" value="Salad" />
+                            <Picker.Item label="Kue" value="Kue" />
+                            <Picker.Item label="Sup" value="Sup" />
+                            <Picker.Item label="Minuman" value="Minuman" />
+                            <Picker.Item label="Cemilan" value="Cemilan" />
                         </Picker>
                     </View>
 
@@ -211,6 +214,8 @@ const CreateRecipeScreen: React.FC = () => {
     );
 };
 
+const INPUT_HEIGHT = 48;
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -222,7 +227,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.surface,
         margin: 16,
-        padding: 12,
+        padding: 16,
         borderRadius: 12,
     },
     title: {
@@ -238,29 +243,35 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
+        height: INPUT_HEIGHT,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
-        padding: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 0, // Remove vertical padding to rely on height
         fontSize: 14,
         marginBottom: 16,
         color: colors.textPrimary,
         backgroundColor: colors.inputBackground,
     },
     textArea: {
-        minHeight: 80,
+        height: undefined, // Override fixed height for multiline
+        minHeight: 100,
+        paddingVertical: 12, // Add back vertical padding for multiline
         textAlignVertical: "top",
     },
     pickerContainer: {
+        height: INPUT_HEIGHT,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
         marginBottom: 16,
         backgroundColor: colors.inputBackground,
         overflow: "hidden",
+        justifyContent: "center",
     },
     picker: {
-        height: 50,
+        height: INPUT_HEIGHT,
         color: colors.textPrimary,
     },
     ingredientRow: {
@@ -296,7 +307,7 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: colors.successSoft,
-        paddingVertical: 10,
+        paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
         marginBottom: 16,
@@ -312,7 +323,7 @@ const styles = StyleSheet.create({
     },
     button: {
         flex: 1,
-        paddingVertical: 12,
+        paddingVertical: 14,
         borderRadius: 8,
         alignItems: "center",
     },

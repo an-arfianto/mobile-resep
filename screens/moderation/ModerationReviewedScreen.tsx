@@ -25,11 +25,9 @@ const ModerationReviewedScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Pagination
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
-    // Detail Modal
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState<ModerationRecipe | null>(null);
 
@@ -38,13 +36,13 @@ const ModerationReviewedScreen: React.FC = () => {
             setLoading(true);
             setError(null);
             const response = await api.moderation.getAllRecipes();
-            // Filter recipes reviewed by current user (excluding pending)
             const reviewedByMe = response.data.filter(
                 (r) => Number(r.reviewed_by) === Number(user?.id) && r.status !== "pending",
             );
             setRecipes(reviewedByMe);
             setDisplayCount(10);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -59,7 +57,9 @@ const ModerationReviewedScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchReviewedRecipes();
+            return () => controller.abort();
         }, []),
     );
 
@@ -181,7 +181,6 @@ const ModerationReviewedScreen: React.FC = () => {
                 )}
             </ScrollView>
 
-            {/* Detail Modal */}
             <Modal
                 visible={detailModalVisible}
                 animationType="slide"
@@ -306,7 +305,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     recipeDetails: {
-        marginBottom: 12,
+        marginBottom: 8,
     },
     recipeInfo: {
         fontSize: 13,

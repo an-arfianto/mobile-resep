@@ -46,6 +46,7 @@ const ModerationPendingScreen: React.FC = () => {
             setRecipes(response.data);
             setDisplayCount(10);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -60,7 +61,9 @@ const ModerationPendingScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchPendingRecipes();
+            return () => controller.abort();
         }, []),
     );
 
@@ -223,7 +226,6 @@ const ModerationPendingScreen: React.FC = () => {
                 )}
             </ScrollView>
 
-            {/* Detail Modal */}
             <Modal
                 visible={detailModalVisible}
                 animationType="slide"
@@ -294,7 +296,6 @@ const ModerationPendingScreen: React.FC = () => {
                 )}
             </Modal>
 
-            {/* Reject Modal */}
             <Modal
                 visible={rejectModalVisible}
                 transparent
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: colors.surface,
+        backgroundColor: colors.background,
     },
     content: {
         flex: 1,

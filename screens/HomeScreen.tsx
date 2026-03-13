@@ -31,6 +31,7 @@ const HomeScreen: React.FC = () => {
             setRecipes(Array.isArray(response.data) ? response.data : [response.data]);
             setDisplayCount(10);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -45,7 +46,9 @@ const HomeScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchRecipes();
+            return () => controller.abort();
         }, []),
     );
 

@@ -38,36 +38,29 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
         ]);
     };
 
-    // Format ingredient properly without extra spaces
     const formatIngredient = (ing: Ingredient): string => {
         const parts: string[] = [];
 
-        // Add quantity if exists
         if (ing.quantity !== null && ing.quantity !== undefined) {
             parts.push(ing.quantity.toString());
         }
 
-        // Add unit if exists and not empty
         if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
             parts.push(ing.unit);
         }
 
-        // Add ingredient name
         parts.push(ing.name);
 
         return parts.join(" ");
     };
 
-    // Get ingredients display string
     const getIngredientsDisplay = (): string => {
         if (!recipe.ingredients) return "";
 
-        // If string, return as is
         if (typeof recipe.ingredients === "string") {
             return recipe.ingredients;
         }
 
-        // If array, format each ingredient properly
         if (Array.isArray(recipe.ingredients)) {
             return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
         }

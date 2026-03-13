@@ -23,6 +23,7 @@ export interface Recipe {
     ingredients: Ingredient[] | string;
     ingredientsText?: string;
     user_id?: number;
+    creator_username: string;
     rejection_reason?: string;
     matched_count?: number;
     created_at: string;

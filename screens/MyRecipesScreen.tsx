@@ -26,6 +26,7 @@ const MyRecipesScreen: React.FC = () => {
             const myRecipes = Array.isArray(response.data) ? response.data : [response.data];
             setRecipes(myRecipes);
         } catch (err: any) {
+            if (err.cancelled) return;
             setError(err.message);
         } finally {
             setLoading(false);
@@ -40,7 +41,9 @@ const MyRecipesScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
+            const controller = new AbortController();
             fetchMyRecipes();
+            return () => controller.abort();
         }, []),
     );
 
@@ -75,14 +78,12 @@ const MyRecipesScreen: React.FC = () => {
         <View style={styles.container}>
             <Header title="Resep Saya" />
 
-            {/* Create Recipe Button */}
             <View style={styles.actionBar}>
                 <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate("CreateRecipe")}>
                     <Text style={styles.createButtonText}>+ Tambah Resep</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Status Filter */}
             {recipes.length > 0 && (
                 <ScrollView
                     horizontal

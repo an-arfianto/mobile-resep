@@ -26,13 +26,12 @@ const LoginScreen: React.FC = () => {
 
     const handleLogin = async () => {
         if (!username || !password) {
-            Alert.alert("Error", "Isi semua field yang ada!");
+            Alert.alert("Error", "Masukan semua field yang ada!");
             return;
         }
 
         const success = await login({ username, password });
         if (!success && error) {
-            // Error is already displayed via the error state
             console.log("Login failed:", error);
         }
     };
@@ -75,7 +74,7 @@ const LoginScreen: React.FC = () => {
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Tidak punya akun? </Text>
+                        <Text style={styles.footerText}>Tidak memiliki akun? </Text>
                         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
                             <Text style={styles.link}>Registrasi!</Text>
                         </TouchableOpacity>

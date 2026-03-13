@@ -18,36 +18,29 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
         navigation.navigate("RecipeDetail", { recipeId: recipe.id });
     };
 
-    // Format ingredient properly without extra spaces
     const formatIngredient = (ing: Ingredient): string => {
         const parts: string[] = [];
 
-        // Add quantity if exists
         if (ing.quantity !== null && ing.quantity !== undefined) {
             parts.push(ing.quantity.toString());
         }
 
-        // Add unit if exists and not empty
         if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
             parts.push(ing.unit);
         }
 
-        // Add ingredient name
         parts.push(ing.name);
 
         return parts.join(" ");
     };
 
-    // Get ingredients display string
     const getIngredientsDisplay = (): string => {
         if (!recipe.ingredients) return "";
 
-        // If string, return as is
         if (typeof recipe.ingredients === "string") {
             return recipe.ingredients;
         }
 
-        // If array, format each ingredient properly
         if (Array.isArray(recipe.ingredients)) {
             return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
         }
@@ -57,12 +50,22 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
 
     return (
         <TouchableOpacity style={styles.card} onPress={handlePress}>
-            <Text style={styles.title}>{recipe.name}</Text>
-
-            <View style={styles.tagContainer}>
+            <View style={styles.header}>
+                <Text style={styles.title} numberOfLines={2}>
+                    {recipe.name}
+                </Text>
                 <View style={styles.categoryTag}>
                     <Text style={styles.categoryText}>{recipe.category}</Text>
                 </View>
+            </View>
+
+            <View style={styles.tagContainer}>
+                {recipe.creator_username && (
+                    <View style={styles.creatorContainer}>
+                        <Text style={styles.creatorText}>Oleh: {recipe.creator_username}</Text>
+                    </View>
+                )}
+
                 {recipe.matched_count !== undefined && recipe.matched_count !== null && (
                     <View style={styles.matchTag}>
                         <Text style={styles.matchText}>{recipe.matched_count} bahan sama</Text>
@@ -92,28 +95,46 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 3,
         elevation: 3,
+        gap: 8,
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 8,
     },
     title: {
+        flex: 1,
         fontSize: 18,
         fontWeight: "bold",
         color: colors.textPrimary,
-        marginBottom: 8,
-    },
-    tagContainer: {
-        flexDirection: "row",
-        gap: 8,
-        marginBottom: 8,
+        lineHeight: 24,
     },
     categoryTag: {
         backgroundColor: colors.secondarySoft,
         paddingHorizontal: 12,
         paddingVertical: 4,
         borderRadius: 12,
+        alignSelf: "flex-start",
     },
     categoryText: {
         color: colors.secondary,
         fontSize: 12,
         fontWeight: "600",
+    },
+    tagContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: 8,
+        alignItems: "center",
+    },
+    creatorContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    creatorText: {
+        fontSize: 13,
+        color: colors.textSecondary,
     },
     matchTag: {
         backgroundColor: colors.successSoft,
@@ -129,13 +150,15 @@ const styles = StyleSheet.create({
     ingredients: {
         fontSize: 14,
         color: colors.textSecondary,
-        marginBottom: 12,
+        lineHeight: 20,
+        flex: 1,
     },
     button: {
         backgroundColor: colors.primarySoft,
         paddingVertical: 10,
         borderRadius: 8,
         alignItems: "center",
+        marginTop: 4,
     },
     buttonText: {
         color: colors.primary,

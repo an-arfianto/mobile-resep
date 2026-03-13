@@ -17,7 +17,9 @@ const RecipeDetailScreen: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        const controller = new AbortController();
         fetchRecipe();
+        return () => controller.abort();
     }, []);
 
     const fetchRecipe = async () => {
@@ -26,6 +28,7 @@ const RecipeDetailScreen: React.FC = () => {
             const response = await api.recipes.getById(route.params.recipeId);
             setRecipe(response.data as Recipe);
         } catch (err: any) {
+            if (err.cancelled) return;
             Alert.alert("Error", err.message, [
                 {
                     text: "Kembali",
@@ -59,12 +62,10 @@ const RecipeDetailScreen: React.FC = () => {
     const getIngredientsList = (): Ingredient[] => {
         if (!recipe) return [];
 
-        // If ingredients is already an array
         if (Array.isArray(recipe.ingredients)) {
             return recipe.ingredients;
         }
 
-        // If ingredients is a string
         if (typeof recipe.ingredients === "string") {
             return recipe.ingredients.split(",").map((item: string) => ({
                 name: item.trim(),
@@ -76,30 +77,16 @@ const RecipeDetailScreen: React.FC = () => {
         return [];
     };
 
-    /**
-     * Format ingredient display text
-     * Handles all combinations of quantity/unit being present or null
-     */
-    const formatIngredientText = (ingredient: Ingredient): string => {
-        const parts: string[] = [];
-
-        // Add quantity if exists
-        if (ingredient.quantity !== null && ingredient.quantity !== undefined) {
-            parts.push(ingredient.quantity.toString());
-        }
-
-        // Add unit if exists
-        if (ingredient.unit !== null && ingredient.unit !== undefined && ingredient.unit.trim() !== "") {
-            parts.push(ingredient.unit);
-        }
-
-        // Add ingredient name
-        parts.push(ingredient.name);
-
-        return parts.join(" ");
-    };
-
     const ingredientsList = getIngredientsList();
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString("id-ID", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    };
 
     return (
         <ScrollView style={styles.container}>
@@ -111,7 +98,25 @@ const RecipeDetailScreen: React.FC = () => {
                     </View>
                 </View>
 
-                {recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+                <View style={styles.section}>
+                    <View style={styles.descriptionBox}>
+                        <View style={styles.metaBox}>
+                            {recipe.creator_username && (
+                                <View style={styles.metaRow}>
+                                    <Text style={styles.metaLabel}>Oleh:</Text>
+                                    <Text style={styles.metaValueBold}>{recipe.creator_username}</Text>
+                                </View>
+                            )}
+                            {recipe.created_at && (
+                                <View style={styles.metaRow}>
+                                    <Text style={styles.metaLabel}>Dibuat:</Text>
+                                    <Text style={styles.metaValue}>{formatDate(recipe.created_at)}</Text>
+                                </View>
+                            )}
+                        </View>
+                        {recipe.description && <Text style={styles.description}>{recipe.description}</Text>}
+                    </View>
+                </View>
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Bahan-bahan</Text>
@@ -128,18 +133,16 @@ const RecipeDetailScreen: React.FC = () => {
                                     <Text style={styles.bullet}>•</Text>
                                     <Text style={styles.ingredientText}>
                                         {hasQuantityOrUnit && (
-                                            <>
-                                                <Text style={styles.bold}>
-                                                    {ingredient.quantity !== null && ingredient.quantity !== undefined
-                                                        ? `${ingredient.quantity} `
-                                                        : ""}
-                                                    {ingredient.unit !== null &&
-                                                    ingredient.unit !== undefined &&
-                                                    ingredient.unit.trim() !== ""
-                                                        ? `${ingredient.unit} `
-                                                        : ""}
-                                                </Text>
-                                            </>
+                                            <Text style={styles.bold}>
+                                                {ingredient.quantity !== null && ingredient.quantity !== undefined
+                                                    ? `${ingredient.quantity} `
+                                                    : ""}
+                                                {ingredient.unit !== null &&
+                                                ingredient.unit !== undefined &&
+                                                ingredient.unit.trim() !== ""
+                                                    ? `${ingredient.unit} `
+                                                    : ""}
+                                            </Text>
                                         )}
                                         {ingredient.name}
                                     </Text>
@@ -166,6 +169,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.background,
     },
     centerContainer: {
+        backgroundColor: colors.background,
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
@@ -200,11 +204,46 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
     },
+    metaBox: {
+        backgroundColor: colors.background,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 10,
+        flexDirection: "column",
+        gap: 6,
+    },
+    metaRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    metaLabel: {
+        fontSize: 13,
+        color: colors.textSecondary,
+    },
+    metaValueBold: {
+        fontSize: 13,
+        fontWeight: "bold",
+        color: colors.textPrimary,
+    },
+    metaValue: {
+        fontSize: 13,
+        color: colors.textPrimary,
+    },
+    descriptionBox: {
+        backgroundColor: colors.surface,
+        padding: 14,
+        borderRadius: 12,
+        shadowColor: colors.border,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 3,
+    },
     description: {
         fontSize: 16,
         color: colors.textSecondary,
-        marginBottom: 24,
-        lineHeight: 24,
+        marginTop: 16,
     },
     section: {
         marginBottom: 24,
@@ -227,14 +266,13 @@ const styles = StyleSheet.create({
     },
     ingredientItem: {
         flexDirection: "row",
-        marginBottom: 8,
+        marginBottom: 4,
         alignItems: "flex-start",
     },
     bullet: {
         color: colors.textPrimary,
         marginRight: 8,
         fontSize: 16,
-        // marginTop: 2,
     },
     ingredientText: {
         flex: 1,

@@ -16,7 +16,7 @@ const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({ currentItems, totalItem
     if (!hasMore) {
         return (
             <View style={styles.endContainer}>
-                <Text style={styles.endText}>Total {totalItems} item</Text>
+                <Text style={styles.endText}>Total: {totalItems} item</Text>
             </View>
         );
     }
@@ -24,13 +24,13 @@ const LoadMoreButton: React.FC<LoadMoreButtonProps> = ({ currentItems, totalItem
     return (
         <View style={styles.container}>
             <Text style={styles.infoText}>
-                {currentItems} dari {totalItems}
+                Memuat {currentItems} items dari {totalItems} items
             </Text>
             <TouchableOpacity style={styles.button} onPress={onLoadMore} disabled={loading}>
                 {loading ? (
                     <ActivityIndicator color={colors.textInverse} />
                 ) : (
-                    <Text style={styles.buttonText}>Coba Lagi</Text>
+                    <Text style={styles.buttonText}>Muat lagi</Text>
                 )}
             </TouchableOpacity>
         </View>
