@@ -1,14 +1,13 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    FlatList,
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -58,10 +57,6 @@ const AdminUsersScreen: React.FC = () => {
         setRefreshing(false);
     }, []);
 
-    const handleLoadMore = () => {
-        setDisplayCount((prev) => Math.min(prev + itemsPerPage, users.length));
-    };
-
     const handleSort = (column: SortColumn) => {
         if (sortColumn === column) {
             setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -74,7 +69,6 @@ const AdminUsersScreen: React.FC = () => {
 
     const sortedUsers = useMemo(() => {
         const sorted = [...users];
-
         sorted.sort((a, b) => {
             let aVal = a[sortColumn];
             let bVal = b[sortColumn];
@@ -91,9 +85,16 @@ const AdminUsersScreen: React.FC = () => {
             if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
             return 0;
         });
-
         return sorted;
     }, [users, sortColumn, sortDirection]);
+
+    const displayedUsers = sortedUsers.slice(0, displayCount);
+    const hasMore = displayCount < sortedUsers.length;
+
+    const handleLoadMore = () => {
+        if (!hasMore) return;
+        setDisplayCount((prev) => Math.min(prev + itemsPerPage, sortedUsers.length));
+    };
 
     const promoteUser = (userId: number, username: string) => {
         Alert.alert("Promosi", `Promosikan ${username} ke Moderator?`, [
@@ -137,6 +138,16 @@ const AdminUsersScreen: React.FC = () => {
                 ? `\n\nPERHATIAN: Menghapus user juga akan menghapus ${recipeCount} resep yang mereka buat`
                 : "";
 
+        const performDelete = async () => {
+            try {
+                await api.admin.deleteUser(userId);
+                setUsers((prev) => prev.filter((u) => u.id !== userId));
+                Alert.alert("Sukses", `User "${username}" berhasil dihapus`);
+            } catch (err: any) {
+                Alert.alert("Eror", err.message || "User gagal dihapus");
+            }
+        };
+
         Alert.alert("Hapus User", `Anda yakin ingin menghapus "${username}"?${recipeWarning}`, [
             { text: "Batal", style: "cancel" },
             {
@@ -149,15 +160,7 @@ const AdminUsersScreen: React.FC = () => {
                             {
                                 text: "Hapus",
                                 style: "destructive",
-                                onPress: async () => {
-                                    try {
-                                        await api.admin.deleteUser(userId);
-                                        setUsers(users.filter((u) => u.id !== userId));
-                                        Alert.alert("Sukses", `User "${username}" berhasil dihapus`);
-                                    } catch (err: any) {
-                                        Alert.alert("Eror", err.message || "User gagal dihapus");
-                                    }
-                                },
+                                onPress: performDelete,
                             },
                         ]);
                     } else {
@@ -166,77 +169,160 @@ const AdminUsersScreen: React.FC = () => {
                 },
             },
         ]);
-
-        const performDelete = async () => {
-            try {
-                await api.admin.deleteUser(userId);
-                setUsers(users.filter((u) => u.id !== userId));
-                Alert.alert("Sukses", `User "${username}" berhasil dihapus`);
-            } catch (err: any) {
-                Alert.alert("Eror", err.message || "User gagal dihapus");
-            }
-        };
     };
 
     const getRoleBadgeStyle = (roleId: number) => {
-        if (roleId === 1) {
-            return { bg: styles.adminBadge, text: styles.adminText, label: "Admin" };
-        }
-        if (roleId === 2) {
-            return { bg: styles.modBadge, text: styles.modText, label: "Moderator" };
-        }
+        if (roleId === 1) return { bg: styles.adminBadge, text: styles.adminText, label: "Admin" };
+        if (roleId === 2) return { bg: styles.modBadge, text: styles.modText, label: "Moderator" };
         return { bg: styles.userBadge, text: styles.userText, label: "User" };
     };
 
     const getSortIcon = (column: SortColumn) => {
-        if (sortColumn === column) {
-            return sortDirection === "asc" ? "↑" : "↓";
-        }
+        if (sortColumn === column) return sortDirection === "asc" ? "↑" : "↓";
         return "↕";
     };
 
-    if (loading && !refreshing) {
-        return (
-            <View style={styles.container}>
-                <Header title="Kelola User" />
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
-            <View style={styles.container}>
-                <Header title="Kelola User" />
-                <View style={styles.centerContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchUsers}>
-                        <Text style={styles.retryButtonText}>Coba lagi</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
-
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
+        return new Date(dateString).toLocaleDateString("id-ID", {
             year: "numeric",
             month: "long",
             day: "numeric",
         });
     };
 
-    const displayedUsers = sortedUsers.slice(0, displayCount);
+    const renderItem = useCallback(
+        ({ item: user }: { item: any }) => {
+            const badge = getRoleBadgeStyle(user.role_id);
+            const isAdmin = user.role_id === 1;
+            const isModerator = user.role_id === 2;
+            const isRegularUser = user.role_id === 3;
+
+            return (
+                <View style={styles.userCard}>
+                    <View style={styles.userHeader}>
+                        <Text style={styles.username}>{user.username}</Text>
+                        <View style={[styles.roleBadge, badge.bg]}>
+                            <Text style={[styles.roleText, badge.text]}>{badge.label}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.userDetails}>
+                        <Text style={styles.detailText}>Resep: {user.recipe_count}</Text>
+                        <Text style={styles.detailText}>Bergabung: {formatDate(user.created_at)}</Text>
+                    </View>
+
+                    {!isAdmin && (
+                        <View style={styles.actionButtons}>
+                            {isRegularUser && (
+                                <TouchableOpacity
+                                    style={styles.promoteButton}
+                                    onPress={() => promoteUser(user.id, user.username)}
+                                >
+                                    <Text style={styles.promoteButtonText}>Promosi</Text>
+                                </TouchableOpacity>
+                            )}
+                            {isModerator && (
+                                <TouchableOpacity
+                                    style={styles.demoteButton}
+                                    onPress={() => demoteUser(user.id, user.username)}
+                                >
+                                    <Text style={styles.demoteButtonText}>Turun</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={styles.deleteButton}
+                                onPress={() => deleteUser(user.id, user.username, user.recipe_count)}
+                            >
+                                <Text style={styles.deleteButtonText}>Hapus</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {isAdmin && (
+                        <View style={styles.protectedBadge}>
+                            <Text style={styles.protectedText}> Protected </Text>
+                        </View>
+                    )}
+                </View>
+            );
+        },
+        [promoteUser, demoteUser, deleteUser],
+    );
+
+    const renderSortHeader = useCallback(
+        () => (
+            <View style={styles.sortContainer}>
+                <Text style={styles.sortLabel}>Urutkan:</Text>
+                <TouchableOpacity
+                    style={[styles.sortButton, sortColumn === "created_at" && styles.sortButtonActive]}
+                    onPress={() => handleSort("created_at")}
+                >
+                    <Text style={[styles.sortButtonText, sortColumn === "created_at" && styles.sortButtonTextActive]}>
+                        Bergabung {getSortIcon("created_at")}
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.sortButton, sortColumn === "role_id" && styles.sortButtonActive]}
+                    onPress={() => handleSort("role_id")}
+                >
+                    <Text style={[styles.sortButtonText, sortColumn === "role_id" && styles.sortButtonTextActive]}>
+                        Role {getSortIcon("role_id")}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        ),
+        [sortColumn, sortDirection],
+    );
+
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {sortedUsers.length} user
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {sortedUsers.length} user</Text>
+            </View>
+        );
+    };
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
+            return (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            );
+        }
+        if (error)
+            <View style={styles.centerContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={fetchUsers}>
+                    <Text style={styles.retryButtonText}>Coba lagi</Text>
+                </TouchableOpacity>
+            </View>;
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Tidak ada user</Text>
+            </View>
+        );
+    };
 
     return (
         <View style={styles.container}>
             <Header title="Kelola User" />
-            <ScrollView
-                style={styles.scrollContainer}
-                contentContainerStyle={styles.contentContainer}
+            <FlatList
+                data={displayedUsers}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -245,92 +331,11 @@ const AdminUsersScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                <View style={styles.sortContainer}>
-                    <Text style={styles.sortLabel}>Urutkan:</Text>
-                    <TouchableOpacity
-                        style={[styles.sortButton, sortColumn === "created_at" && styles.sortButtonActive]}
-                        onPress={() => handleSort("created_at")}
-                    >
-                        <Text
-                            style={[styles.sortButtonText, sortColumn === "created_at" && styles.sortButtonTextActive]}
-                        >
-                            Bergabung {getSortIcon("created_at")}
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.sortButton, sortColumn === "role_id" && styles.sortButtonActive]}
-                        onPress={() => handleSort("role_id")}
-                    >
-                        <Text style={[styles.sortButtonText, sortColumn === "role_id" && styles.sortButtonTextActive]}>
-                            Role {getSortIcon("role_id")}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-
-                {displayedUsers.map((user) => {
-                    const badge = getRoleBadgeStyle(user.role_id);
-                    const isAdmin = user.role_id === 1;
-                    const isModerator = user.role_id === 2;
-                    const isRegularUser = user.role_id === 3;
-
-                    return (
-                        <View key={user.id} style={styles.userCard}>
-                            <View style={styles.userHeader}>
-                                <Text style={styles.username}>{user.username}</Text>
-                                <View style={[styles.roleBadge, badge.bg]}>
-                                    <Text style={[styles.roleText, badge.text]}>{badge.label}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.userDetails}>
-                                <Text style={styles.detailText}>Resep: {user.recipe_count}</Text>
-                                <Text style={styles.detailText}>Bergabung: {formatDate(user.created_at)}</Text>
-                            </View>
-
-                            {!isAdmin && (
-                                <View style={styles.actionButtons}>
-                                    {isRegularUser && (
-                                        <TouchableOpacity
-                                            style={styles.promoteButton}
-                                            onPress={() => promoteUser(user.id, user.username)}
-                                        >
-                                            <Text style={styles.promoteButtonText}>Promosi</Text>
-                                        </TouchableOpacity>
-                                    )}
-
-                                    {isModerator && (
-                                        <TouchableOpacity
-                                            style={styles.demoteButton}
-                                            onPress={() => demoteUser(user.id, user.username)}
-                                        >
-                                            <Text style={styles.demoteButtonText}>Turun</Text>
-                                        </TouchableOpacity>
-                                    )}
-
-                                    <TouchableOpacity
-                                        style={styles.deleteButton}
-                                        onPress={() => deleteUser(user.id, user.username, user.recipe_count)}
-                                    >
-                                        <Text style={styles.deleteButtonText}>Hapus</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-
-                            {isAdmin && (
-                                <View style={styles.protectedBadge}>
-                                    <Text style={styles.protectedText}> Protected </Text>
-                                </View>
-                            )}
-                        </View>
-                    );
-                })}
-
-                <LoadMoreButton
-                    currentItems={displayCount}
-                    totalItems={sortedUsers.length}
-                    onLoadMore={handleLoadMore}
-                />
-            </ScrollView>
+                ListHeaderComponent={renderSortHeader}
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.contentContainer}
+            />
         </View>
     );
 };
@@ -340,17 +345,15 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    scrollContainer: {
-        flex: 1,
-    },
     contentContainer: {
         padding: 16,
+        flexGrow: 1,
     },
     centerContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: 20,
+        paddingTop: 60,
     },
     sortContainer: {
         flexDirection: "row",
@@ -495,6 +498,15 @@ const styles = StyleSheet.create({
         color: colors.textMuted,
         fontStyle: "italic",
     },
+    emptyContainer: {
+        alignItems: "center",
+        marginTop: 60,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: colors.textPrimary,
+        textAlign: "center",
+    },
     errorText: {
         color: colors.error,
         fontSize: 14,
@@ -511,6 +523,18 @@ const styles = StyleSheet.create({
         color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
+    },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
+    },
+    footerLoader: {
+        marginTop: 4,
     },
 });
 

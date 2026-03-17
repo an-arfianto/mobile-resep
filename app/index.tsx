@@ -1,15 +1,15 @@
-import { colors } from "@/assets/color";
 import { AuthProvider } from "@/context/AuthContext";
 import AppNavigator from "@/navigation/AppNavigator";
 import React from "react";
-import { StatusBar } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/assets/color";
 
 export default function Index() {
     return (
         <AuthProvider>
-            <StatusBar backgroundColor={colors.background} barStyle="dark-content" translucent={false} />
-            <SafeAreaView style={{ flex: 1 }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
+                <StatusBar style="dark" />
                 <AppNavigator />
             </SafeAreaView>
         </AuthProvider>

@@ -53,9 +53,9 @@ const AdminTabNavigator: React.FC = () => {
                     backgroundColor: colors.surface,
                     borderTopWidth: 1,
                     borderTopColor: colors.divider,
-                    paddingTop: 8,
-                    paddingBottom: 8,
-                    height: 60,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    height: 80,
                 },
             }}
         >

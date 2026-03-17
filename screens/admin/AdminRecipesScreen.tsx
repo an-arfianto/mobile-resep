@@ -1,6 +1,5 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
 import type { RootStackParamList } from "@/types";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -9,8 +8,8 @@ import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    FlatList,
     RefreshControl,
-    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -27,6 +26,7 @@ const AdminRecipesScreen: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
+    const hasMore = displayCount < recipes.length;
 
     const fetchRecipes = async () => {
         try {
@@ -58,6 +58,7 @@ const AdminRecipesScreen: React.FC = () => {
     }, []);
 
     const handleLoadMore = () => {
+        if (!hasMore) return;
         setDisplayCount((prev) => Math.min(prev + itemsPerPage, recipes.length));
     };
 
@@ -70,7 +71,7 @@ const AdminRecipesScreen: React.FC = () => {
                 onPress: async () => {
                     try {
                         await api.admin.deleteRecipe(id);
-                        setRecipes(recipes.filter((r) => r.id !== id));
+                        setRecipes((prev) => prev.filter((r) => r.id !== id));
                         Alert.alert("Success", "Resep berhasil dihapus");
                     } catch (err: any) {
                         Alert.alert("Error", err.message || "Gagal menghapus resep");
@@ -80,34 +81,8 @@ const AdminRecipesScreen: React.FC = () => {
         ]);
     };
 
-    if (loading && !refreshing) {
-        return (
-            <View style={styles.container}>
-                <Header title="Kelola Resep" />
-                <View style={styles.centerContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                </View>
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
-            <View style={styles.container}>
-                <Header title="Kelola Resep" />
-                <View style={styles.centerContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchRecipes}>
-                        <Text style={styles.retryButtonText}>Coba lagi</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
-
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
+        return new Date(dateString).toLocaleDateString("id-ID", {
             year: "numeric",
             month: "long",
             day: "numeric",
@@ -116,12 +91,88 @@ const AdminRecipesScreen: React.FC = () => {
 
     const displayedRecipes = recipes.slice(0, displayCount);
 
+    const renderItem = ({ item: recipe }: { item: any }) => (
+        <View style={styles.recipeCard}>
+            <Text style={styles.recipeName}>{recipe.name}</Text>
+            <View style={styles.recipeInfo}>
+                <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{recipe.category}</Text>
+                </View>
+                <Text style={styles.authorText}>oleh {recipe.author}</Text>
+            </View>
+            {recipe.ingredients && (
+                <Text style={styles.ingredients} numberOfLines={2}>
+                    {recipe.ingredients}
+                </Text>
+            )}
+            <Text style={styles.dateText}>Dibuat: {formatDate(recipe.created_at)}</Text>
+            <View style={styles.buttonRow}>
+                <TouchableOpacity
+                    style={styles.viewButton}
+                    onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
+                >
+                    <Text style={styles.viewButtonText}>Lihat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteRecipe(recipe.id, recipe.name)}>
+                    <Text style={styles.deleteButtonText}>Hapus</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
+            return (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            );
+        }
+        if (error) {
+            return (
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={fetchRecipes}>
+                        <Text style={styles.retryButtonText}>Coba lagi</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Tidak ada resep</Text>
+            </View>
+        );
+    };
+
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {recipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={{ marginTop: 4 }} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             <Header title="Kelola Resep" />
-            <ScrollView
-                style={styles.scrollContainer}
-                contentContainerStyle={styles.contentContainer}
+            <FlatList
+                data={displayedRecipes}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -130,57 +181,10 @@ const AdminRecipesScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                {recipes.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>Tidak ada resep</Text>
-                    </View>
-                ) : (
-                    <>
-                        {displayedRecipes.map((recipe) => (
-                            <View key={recipe.id} style={styles.recipeCard}>
-                                <Text style={styles.recipeName}>{recipe.name}</Text>
-                                <View style={styles.recipeInfo}>
-                                    <View style={styles.categoryBadge}>
-                                        <Text style={styles.categoryText}>{recipe.category}</Text>
-                                    </View>
-                                    <Text style={styles.authorText}>oleh {recipe.author}</Text>
-                                </View>
-                                {recipe.ingredients && (
-                                    <Text style={styles.ingredients} numberOfLines={2}>
-                                        {recipe.ingredients}
-                                    </Text>
-                                )}
-                                <Text style={styles.dateText}>Dibuat: {formatDate(recipe.created_at)}</Text>
-                                <View style={styles.buttonRow}>
-                                    <TouchableOpacity
-                                        style={styles.viewButton}
-                                        onPress={() =>
-                                            navigation.navigate("RecipeDetail", {
-                                                recipeId: recipe.id,
-                                            })
-                                        }
-                                    >
-                                        <Text style={styles.viewButtonText}>Lihat</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.deleteButton}
-                                        onPress={() => deleteRecipe(recipe.id, recipe.name)}
-                                    >
-                                        <Text style={styles.deleteButtonText}>Hapus</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ))}
-
-                        <LoadMoreButton
-                            currentItems={displayCount}
-                            totalItems={recipes.length}
-                            onLoadMore={handleLoadMore}
-                        />
-                    </>
-                )}
-            </ScrollView>
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.contentContainer}
+            />
         </View>
     );
 };
@@ -190,11 +194,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    scrollContainer: {
-        flex: 1,
-    },
     contentContainer: {
         padding: 16,
+        flexGrow: 1,
     },
     centerContainer: {
         flex: 1,
@@ -302,6 +304,15 @@ const styles = StyleSheet.create({
         color: colors.textInverse,
         fontWeight: "600",
         fontSize: 16,
+    },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
     },
 });
 

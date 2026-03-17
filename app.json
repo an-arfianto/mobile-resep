@@ -9,10 +9,6 @@
         "userInterfaceStyle": "light",
         "newArchEnabled": true,
         "android": {
-            "statusBar": {
-                "backgroundColor": "#faf4ed",
-                "translucent": false
-            },
             "adaptiveIcon": {
                 "backgroundColor": "#faf4ed",
                 "foregroundImage": "./assets/images/android-icon-foreground.png",

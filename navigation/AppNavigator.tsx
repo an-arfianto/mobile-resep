@@ -23,17 +23,14 @@ const AppNavigator: React.FC = () => {
         );
     }
 
-    // admin navigation
     if (isAdmin) {
         return <AdminTabNavigator />;
     }
 
-    // moderator navigation
     if (isModerator) {
         return <ModeratorTabNavigator />;
     }
 
-    // regular user navigation
     return <UserTabNavigator />;
 };
 

@@ -74,9 +74,9 @@ const ModeratorTabNavigator: React.FC = () => {
                     backgroundColor: colors.surface,
                     borderTopWidth: 1,
                     borderTopColor: colors.divider,
-                    paddingTop: 8,
-                    paddingBottom: 8,
-                    height: 60,
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    height: 80,
                 },
             }}
         >
@@ -85,7 +85,7 @@ const ModeratorTabNavigator: React.FC = () => {
                 component={HomeStack}
                 options={{
                     tabBarLabel: "Home",
-                    tabBarIcon: ({ color }) => <Feather name="home" size={24} color={color} />,
+                    tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -93,7 +93,7 @@ const ModeratorTabNavigator: React.FC = () => {
                 component={SearchStack}
                 options={{
                     tabBarLabel: "Cari",
-                    tabBarIcon: ({ color }) => <Feather name="search" size={24} color={color} />,
+                    tabBarIcon: ({ color }) => <Feather name="search" size={22} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -101,7 +101,7 @@ const ModeratorTabNavigator: React.FC = () => {
                 component={MyRecipesStack}
                 options={{
                     tabBarLabel: "Resep Saya",
-                    tabBarIcon: ({ color }) => <Feather name="book" size={24} color={color} />,
+                    tabBarIcon: ({ color }) => <Feather name="book" size={22} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -109,7 +109,7 @@ const ModeratorTabNavigator: React.FC = () => {
                 component={ModerationStack}
                 options={{
                     tabBarLabel: "Moderasi",
-                    tabBarIcon: ({ color }) => <Feather name="shield" size={24} color={color} />,
+                    tabBarIcon: ({ color }) => <Feather name="shield" size={22} color={color} />,
                 }}
             />
             <Tab.Screen
@@ -117,7 +117,7 @@ const ModeratorTabNavigator: React.FC = () => {
                 component={ProfileStack}
                 options={{
                     tabBarLabel: "Profil",
-                    tabBarIcon: ({ color }) => <Feather name="user" size={24} color={color} />,
+                    tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} />,
                 }}
             />
         </Tab.Navigator>

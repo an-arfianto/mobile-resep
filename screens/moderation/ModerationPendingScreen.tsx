@@ -1,6 +1,5 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import LoadMoreButton from "@/components/LoadMoreButton";
 import api from "@/services/api";
 import type { ModerationRecipe } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
@@ -8,9 +7,8 @@ import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    KeyboardAvoidingView,
+    FlatList,
     Modal,
-    Platform,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -26,7 +24,6 @@ const ModerationPendingScreen: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
@@ -67,7 +64,11 @@ const ModerationPendingScreen: React.FC = () => {
         }, []),
     );
 
+    const displayedRecipes = recipes.slice(0, displayCount);
+    const hasMore = displayCount < recipes.length;
+
     const handleLoadMore = () => {
+        if (!hasMore) return;
         setDisplayCount((prev) => Math.min(prev + itemsPerPage, recipes.length));
     };
 
@@ -85,7 +86,7 @@ const ModerationPendingScreen: React.FC = () => {
                     try {
                         setActionLoading(true);
                         await api.moderation.approve(recipeId);
-                        setRecipes(recipes.filter((r) => r.id !== recipeId));
+                        setRecipes((prev) => prev.filter((r) => r.id !== recipeId));
                         setDetailModalVisible(false);
                         Alert.alert("Sukses", "Resep telah disetujui!");
                     } catch (err: any) {
@@ -106,11 +107,10 @@ const ModerationPendingScreen: React.FC = () => {
 
     const handleReject = async () => {
         if (!selectedRecipeId) return;
-
         try {
             setActionLoading(true);
             await api.moderation.reject(selectedRecipeId, rejectionReason || undefined);
-            setRecipes(recipes.filter((r) => r.id !== selectedRecipeId));
+            setRecipes((prev) => prev.filter((r) => r.id !== selectedRecipeId));
             setRejectModalVisible(false);
             setDetailModalVisible(false);
             Alert.alert("Sukses", "Resep telah ditolak!");
@@ -122,40 +122,115 @@ const ModerationPendingScreen: React.FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
+        return new Date(dateString).toLocaleDateString("id-ID", {
             year: "numeric",
             month: "long",
             day: "numeric",
         });
     };
 
-    if (loading && !refreshing) {
-        return (
-            <View style={styles.centerContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-        );
-    }
+    const renderItem = useCallback(
+        ({ item: recipe }: { item: any }) => (
+            <View style={styles.recipeCard}>
+                <View style={styles.recipeHeader}>
+                    <Text style={styles.recipeName}>{recipe.name}</Text>
+                    <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryText}>{recipe.category}</Text>
+                    </View>
+                </View>
 
-    if (error) {
-        return (
-            <View style={styles.centerContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryButton} onPress={fetchPendingRecipes}>
-                    <Text style={styles.retryButtonText}>Coba lagi</Text>
+                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
+                <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
+
+                {recipe.ingredients && (
+                    <View style={styles.ingredientsContainer}>
+                        <Text style={styles.ingredientsLabel}>Bahan:</Text>
+                        <Text style={styles.ingredientsText} numberOfLines={2}>
+                            {recipe.ingredients}
+                        </Text>
+                    </View>
+                )}
+
+                <TouchableOpacity style={styles.detailButton} onPress={() => openDetailModal(recipe)}>
+                    <Text style={styles.detailButtonText}>Lihat detail lengkap →</Text>
                 </TouchableOpacity>
+
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                        style={styles.approveButton}
+                        onPress={() => handleApprove(recipe.id)}
+                        disabled={actionLoading}
+                    >
+                        <Text style={styles.approveButtonText}>Setujui</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.rejectButton}
+                        onPress={() => openRejectModal(recipe.id)}
+                        disabled={actionLoading}
+                    >
+                        <Text style={styles.rejectButtonText}>Tolak</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        ),
+        [handleApprove, openRejectModal],
+    );
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
+            return (
+                <View style={styles.centerContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+            );
+        }
+        if (error) {
+            return (
+                <View style={styles.centerContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={fetchPendingRecipes}>
+                        <Text style={styles.retryButtonText}>Coba lagi</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Semua resep telah direview!</Text>
+                <Text style={styles.emptyText}>Tidak ada pending resep untuk saat ini.</Text>
             </View>
         );
-    }
+    };
 
-    const displayedRecipes = recipes.slice(0, displayCount);
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {recipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
+            </View>
+        );
+    };
 
     return (
         <View style={styles.container}>
             <Header title="Resep Pending" />
-            <ScrollView
-                style={styles.content}
+
+            <FlatList
+                data={displayedRecipes}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -164,67 +239,10 @@ const ModerationPendingScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                {recipes.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>Semua resep telah direview!</Text>
-                        <Text style={styles.emptyText}>Tidak ada pending resep untuk saat ini.</Text>
-                    </View>
-                ) : (
-                    <>
-                        {displayedRecipes.map((recipe) => (
-                            <View key={recipe.id} style={styles.recipeCard}>
-                                <View style={styles.recipeHeader}>
-                                    <Text style={styles.recipeName}>{recipe.name}</Text>
-                                    <View style={styles.categoryBadge}>
-                                        <Text style={styles.categoryText}>{recipe.category}</Text>
-                                    </View>
-                                </View>
-
-                                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
-                                <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
-
-                                {recipe.ingredients && (
-                                    <View style={styles.ingredientsContainer}>
-                                        <Text style={styles.ingredientsLabel}>Bahan:</Text>
-                                        <Text style={styles.ingredientsText} numberOfLines={2}>
-                                            {recipe.ingredients}
-                                        </Text>
-                                    </View>
-                                )}
-
-                                <TouchableOpacity style={styles.detailButton} onPress={() => openDetailModal(recipe)}>
-                                    <Text style={styles.detailButtonText}>Lihat detail lengkap →</Text>
-                                </TouchableOpacity>
-
-                                <View style={styles.actionButtons}>
-                                    <TouchableOpacity
-                                        style={styles.approveButton}
-                                        onPress={() => handleApprove(recipe.id)}
-                                        disabled={actionLoading}
-                                    >
-                                        <Text style={styles.approveButtonText}>Setujui</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={styles.rejectButton}
-                                        onPress={() => openRejectModal(recipe.id)}
-                                        disabled={actionLoading}
-                                    >
-                                        <Text style={styles.rejectButtonText}>Tolak</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        ))}
-
-                        <LoadMoreButton
-                            currentItems={displayCount}
-                            totalItems={recipes.length}
-                            onLoadMore={handleLoadMore}
-                            itemsPerPage={itemsPerPage}
-                        />
-                    </>
-                )}
-            </ScrollView>
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.content}
+            />
 
             <Modal
                 visible={detailModalVisible}
@@ -299,14 +317,15 @@ const ModerationPendingScreen: React.FC = () => {
             <Modal
                 visible={rejectModalVisible}
                 transparent
-                animationType="slide"
+                animationType="fade"
                 onRequestClose={() => setRejectModalVisible(false)}
             >
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                <TouchableOpacity
                     style={styles.rejectModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setRejectModalVisible(false)}
                 >
-                    <View style={styles.rejectModalContent}>
+                    <TouchableOpacity style={styles.rejectModalContent} activeOpacity={1} onPress={() => {}}>
                         <Text style={styles.modalTitle}>Tolak Resep</Text>
                         <Text style={styles.modalSubtitle}>Berikan alasan kenapa menolak resep tersebut!</Text>
 
@@ -341,8 +360,8 @@ const ModerationPendingScreen: React.FC = () => {
                                 )}
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </KeyboardAvoidingView>
+                    </TouchableOpacity>
+                </TouchableOpacity>
             </Modal>
         </View>
     );
@@ -357,11 +376,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        paddingTop: 60,
         backgroundColor: colors.background,
     },
     content: {
-        flex: 1,
         padding: 16,
+        flexGrow: 1,
     },
     recipeCard: {
         backgroundColor: colors.surface,
@@ -491,6 +511,18 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontSize: 16,
     },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
+    },
+    footerLoader: {
+        marginTop: 4,
+    },
     modalSafeArea: {
         flex: 1,
         backgroundColor: colors.surface,
@@ -555,14 +587,13 @@ const styles = StyleSheet.create({
     rejectModalOverlay: {
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "flex-end",
+        justifyContent: "center",
+        paddingHorizontal: 20,
     },
     rejectModalContent: {
         backgroundColor: colors.surface,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderRadius: 16,
         padding: 24,
-        minHeight: 300,
     },
     modalSubtitle: {
         fontSize: 14,

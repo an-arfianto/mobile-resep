@@ -1,6 +1,5 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import LoadMoreButton from "@/components/LoadMoreButton";
 import StatusBadge from "@/components/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
@@ -9,9 +8,11 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
+    FlatList,
     Modal,
     RefreshControl,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -24,7 +25,6 @@ const ModerationReviewedScreen: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-
     const [displayCount, setDisplayCount] = useState(10);
     const itemsPerPage = 10;
 
@@ -63,7 +63,11 @@ const ModerationReviewedScreen: React.FC = () => {
         }, []),
     );
 
+    const displayedRecipes = recipes.slice(0, displayCount);
+    const hasMore = displayCount < recipes.length;
+
     const handleLoadMore = () => {
+        if (!hasMore) return;
         setDisplayCount((prev) => Math.min(prev + itemsPerPage, recipes.length));
     };
 
@@ -73,40 +77,108 @@ const ModerationReviewedScreen: React.FC = () => {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
+        return new Date(dateString).toLocaleDateString("id-ID", {
             year: "numeric",
             month: "long",
             day: "numeric",
         });
     };
 
-    if (loading && !refreshing) {
-        return (
+    const renderItem = useCallback(
+        ({ item: recipe }: { item: any }) => (
+            <TouchableOpacity style={styles.recipeCard} onPress={() => openDetailModal(recipe)} activeOpacity={0.7}>
+                <View style={styles.recipeHeader}>
+                    <Text style={styles.recipeName}>{recipe.name}</Text>
+                    <StatusBadge status={recipe.status} />
+                </View>
+
+                <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{recipe.category}</Text>
+                </View>
+
+                <View style={styles.recipeDetails}>
+                    <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
+                    <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
+                    {recipe.reviewed_at && (
+                        <Text style={styles.recipeInfo}>Direview: {formatDate(recipe.reviewed_at)}</Text>
+                    )}
+                </View>
+
+                {recipe.ingredients && (
+                    <View style={styles.ingredientsContainer}>
+                        <Text style={styles.ingredientsLabel}>Bahan:</Text>
+                        <Text style={styles.ingredientsText} numberOfLines={2}>
+                            {recipe.ingredients}
+                        </Text>
+                    </View>
+                )}
+
+                {recipe.status === "rejected" && recipe.rejection_reason && (
+                    <View style={styles.rejectionContainer}>
+                        <Text style={styles.rejectionLabel}>Alasan:</Text>
+                        <Text style={styles.rejectionText} numberOfLines={2}>
+                            {recipe.rejection_reason}
+                        </Text>
+                    </View>
+                )}
+
+                <Text style={styles.tapToView}>Lihat detail lengkap</Text>
+            </TouchableOpacity>
+        ),
+        [openDetailModal],
+    );
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
             <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
+            </View>;
+        }
+        if (error) {
             <View style={styles.centerContainer}>
                 <Text style={styles.errorText}>{error}</Text>
                 <TouchableOpacity style={styles.retryButton} onPress={fetchReviewedRecipes}>
                     <Text style={styles.retryButtonText}>Coba lagi</Text>
                 </TouchableOpacity>
+            </View>;
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Tidak ada resep</Text>
+                <Text style={styles.emptyText}>Anda belum mereview resep.</Text>
             </View>
         );
-    }
+    };
 
-    const displayedRecipes = recipes.slice(0, displayCount);
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {recipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
+            </View>
+        );
+    };
 
     return (
         <View style={styles.container}>
             <Header title="Histori Resep" />
-            <ScrollView
-                style={styles.content}
+
+            <FlatList
+                data={displayedRecipes}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -115,71 +187,10 @@ const ModerationReviewedScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                {recipes.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>Tidak ada resep</Text>
-                        <Text style={styles.emptyText}>Anda belum mereview resep.</Text>
-                    </View>
-                ) : (
-                    <>
-                        {displayedRecipes.map((recipe) => (
-                            <TouchableOpacity
-                                key={recipe.id}
-                                style={styles.recipeCard}
-                                onPress={() => openDetailModal(recipe)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.recipeHeader}>
-                                    <Text style={styles.recipeName}>{recipe.name}</Text>
-                                    <StatusBadge status={recipe.status} />
-                                </View>
-
-                                <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>{recipe.category}</Text>
-                                </View>
-
-                                <View style={styles.recipeDetails}>
-                                    <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
-                                    <Text style={styles.recipeInfo}>Dibuat: {formatDate(recipe.created_at)}</Text>
-                                    {recipe.reviewed_at && (
-                                        <Text style={styles.recipeInfo}>
-                                            Direview: {formatDate(recipe.reviewed_at)}
-                                        </Text>
-                                    )}
-                                </View>
-
-                                {recipe.ingredients && (
-                                    <View style={styles.ingredientsContainer}>
-                                        <Text style={styles.ingredientsLabel}>Bahan:</Text>
-                                        <Text style={styles.ingredientsText} numberOfLines={2}>
-                                            {recipe.ingredients}
-                                        </Text>
-                                    </View>
-                                )}
-
-                                {recipe.status === "rejected" && recipe.rejection_reason && (
-                                    <View style={styles.rejectionContainer}>
-                                        <Text style={styles.rejectionLabel}>Alasan:</Text>
-                                        <Text style={styles.rejectionText} numberOfLines={2}>
-                                            {recipe.rejection_reason}
-                                        </Text>
-                                    </View>
-                                )}
-
-                                <Text style={styles.tapToView}>Lihat detail lengkap</Text>
-                            </TouchableOpacity>
-                        ))}
-
-                        <LoadMoreButton
-                            currentItems={displayCount}
-                            totalItems={recipes.length}
-                            onLoadMore={handleLoadMore}
-                            itemsPerPage={itemsPerPage}
-                        />
-                    </>
-                )}
-            </ScrollView>
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.content}
+            />
 
             <Modal
                 visible={detailModalVisible}
@@ -261,11 +272,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        paddingTop: 60,
         backgroundColor: colors.background,
     },
     content: {
-        flex: 1,
         padding: 16,
+        flexGrow: 1,
     },
     recipeCard: {
         backgroundColor: colors.surface,
@@ -386,9 +398,22 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontSize: 16,
     },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
+    },
+    footerLoader: {
+        marginTop: 4,
+    },
     modalContainer: {
         flex: 1,
         backgroundColor: colors.surface,
+        paddingTop: StatusBar.currentHeight,
     },
     modalHeader: {
         flexDirection: "row",

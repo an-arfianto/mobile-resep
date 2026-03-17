@@ -272,26 +272,26 @@ const ProfileScreen: React.FC = () => {
 
                                 <View style={styles.statsCard}>
                                     <Text style={styles.sectionTitle}>Resep Saya</Text>
-                                    <View style={styles.statsGrid}>
-                                        <View style={styles.statItem}>
+                                    <View style={styles.statsGrid2x2}>
+                                        <View style={styles.statItem2x2}>
                                             <Text style={[styles.statValue, { color: colors.primary }]}>
                                                 {profile?.my_recipe_count || 0}
                                             </Text>
                                             <Text style={styles.statLabel}>Total Resep</Text>
                                         </View>
-                                        <View style={styles.statItem}>
+                                        <View style={styles.statItem2x2}>
                                             <Text style={[styles.statValue, { color: colors.success }]}>
                                                 {profile?.my_approved_count || 0}
                                             </Text>
                                             <Text style={styles.statLabel}>Disetujui</Text>
                                         </View>
-                                        <View style={styles.statItem}>
+                                        <View style={styles.statItem2x2}>
                                             <Text style={[styles.statValue, { color: colors.warning }]}>
                                                 {profile?.my_pending_count || 0}
                                             </Text>
                                             <Text style={styles.statLabel}>Menunggu Review</Text>
                                         </View>
-                                        <View style={styles.statItem}>
+                                        <View style={styles.statItem2x2}>
                                             <Text style={[styles.statValue, { color: colors.error }]}>
                                                 {profile?.my_rejected_count || 0}
                                             </Text>
@@ -305,26 +305,26 @@ const ProfileScreen: React.FC = () => {
                         {isRegularUser && (
                             <View style={styles.statsCard}>
                                 <Text style={styles.sectionTitle}>Statistik Resep</Text>
-                                <View style={styles.statsGrid}>
-                                    <View style={styles.statItem}>
+                                <View style={styles.statsGrid2x2}>
+                                    <View style={styles.statItem2x2}>
                                         <Text style={[styles.statValue, { color: colors.primary }]}>
                                             {profile?.recipe_count || 0}
                                         </Text>
                                         <Text style={styles.statLabel}>Total Resep</Text>
                                     </View>
-                                    <View style={styles.statItem}>
+                                    <View style={styles.statItem2x2}>
                                         <Text style={[styles.statValue, { color: colors.success }]}>
                                             {profile?.approved_count || 0}
                                         </Text>
                                         <Text style={styles.statLabel}>Disetujui</Text>
                                     </View>
-                                    <View style={styles.statItem}>
+                                    <View style={styles.statItem2x2}>
                                         <Text style={[styles.statValue, { color: colors.warning }]}>
                                             {profile?.pending_count || 0}
                                         </Text>
                                         <Text style={styles.statLabel}>Pending</Text>
                                     </View>
-                                    <View style={styles.statItem}>
+                                    <View style={styles.statItem2x2}>
                                         <Text style={[styles.statValue, { color: colors.error }]}>
                                             {profile?.rejected_count || 0}
                                         </Text>
@@ -587,6 +587,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         width: "33%",
         marginBottom: 12,
+    },
+    statsGrid2x2: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    statItem2x2: {
+        alignItems: "center",
+        width: "50%",
+        marginBottom: 16,
     },
     statValue: {
         fontSize: 28,

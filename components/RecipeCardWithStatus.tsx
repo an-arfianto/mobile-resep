@@ -231,4 +231,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default RecipeCardWithStatus;
+export default React.memo(RecipeCardWithStatus);

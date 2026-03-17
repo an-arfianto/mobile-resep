@@ -13,7 +13,7 @@ import type {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
-const API_URL = "http://10.50.120.216:3000/api"; // Local IP
+const API_URL = "http://10.248.77.216:3000/api"; // Local IP
 // const API_URL = "https://watercolour-suzi-unexpansive.ngrok-free.dev/api"; // Public IP
 
 const api: AxiosInstance = axios.create({

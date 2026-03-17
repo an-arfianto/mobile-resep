@@ -1,6 +1,6 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import LoadMoreButton from "@/components/LoadMoreButton";
+import RejectReasonModal from "@/components/RejectReasonModal";
 import StatusBadge from "@/components/StatusBadge";
 import api from "@/services/api";
 import type { ModerationRecipe } from "@/types";
@@ -8,6 +8,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
+    FlatList,
     Modal,
     RefreshControl,
     ScrollView,
@@ -28,6 +30,8 @@ const ModerationAllScreen: React.FC = () => {
     const itemsPerPage = 10;
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedRecipe, setSelectedRecipe] = useState<ModerationRecipe | null>(null);
+    const [rejectModalVisible, setRejectModalVisible] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
     const fetchAllRecipes = async () => {
         try {
@@ -58,9 +62,18 @@ const ModerationAllScreen: React.FC = () => {
         }, []),
     );
 
+    const filteredRecipes = filter === "all" ? recipes : recipes.filter((r) => r.status === filter);
+    const displayedRecipes = filteredRecipes.slice(0, displayCount);
+    const hasMore = displayCount < filteredRecipes.length;
+
     const handleLoadMore = () => {
-        const filtered = filteredRecipes;
-        setDisplayCount((prev) => Math.min(prev + itemsPerPage, filtered.length));
+        if (!hasMore) return;
+        setDisplayCount((prev) => Math.min(prev + itemsPerPage, filteredRecipes.length));
+    };
+
+    const handleFilterChange = (value: "all" | "pending" | "approved" | "rejected") => {
+        setFilter(value);
+        setDisplayCount(10);
     };
 
     const openDetailModal = (recipe: ModerationRecipe) => {
@@ -68,16 +81,62 @@ const ModerationAllScreen: React.FC = () => {
         setDetailModalVisible(true);
     };
 
+    const openRejectModal = () => {
+        setRejectModalVisible(true);
+    };
+
+    const handleApprove = async () => {
+        if (!selectedRecipe) return;
+        Alert.alert("Setujui", "Anda yakin menyetujui resep ini?", [
+            { text: "Batal", style: "cancel" },
+            {
+                text: "Setujui",
+                onPress: async () => {
+                    try {
+                        setActionLoading(true);
+                        await api.moderation.approve(selectedRecipe.id);
+                        setRecipes((prev) =>
+                            prev.map((r) => (r.id === selectedRecipe.id ? { ...r, status: "approved" } : r)),
+                        );
+                        setSelectedRecipe((prev) => (prev ? { ...prev, status: "approved" } : null));
+                        Alert.alert("Sukses", "Resep telah disetujui!");
+                    } catch (err: any) {
+                        Alert.alert("Error", err.message);
+                    } finally {
+                        setActionLoading(false);
+                    }
+                },
+            },
+        ]);
+    };
+
+    const handleReject = async (reason: string) => {
+        if (!selectedRecipe) return;
+        try {
+            setActionLoading(true);
+            await api.moderation.reject(selectedRecipe.id, reason || undefined);
+            setRecipes((prev) =>
+                prev.map((r) =>
+                    r.id === selectedRecipe.id ? { ...r, status: "rejected", rejection_reason: reason } : r,
+                ),
+            );
+            setSelectedRecipe((prev) => (prev ? { ...prev, status: "rejected", rejection_reason: reason } : null));
+            setRejectModalVisible(false);
+            Alert.alert("Sukses", "Resep telah ditolak!");
+        } catch (err: any) {
+            Alert.alert("Error", err.message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
+        return new Date(dateString).toLocaleDateString("id-ID", {
             year: "numeric",
             month: "long",
             day: "numeric",
         });
     };
-
-    const filteredRecipes = filter === "all" ? recipes : recipes.filter((r) => r.status === filter);
 
     const counts = {
         all: recipes.length,
@@ -89,10 +148,7 @@ const ModerationAllScreen: React.FC = () => {
     const FilterButton = ({ label, value, count }: any) => (
         <TouchableOpacity
             style={[styles.filterButton, filter === value && styles.filterButtonActive]}
-            onPress={() => {
-                setFilter(value);
-                setDisplayCount(10);
-            }}
+            onPress={() => handleFilterChange(value)}
         >
             <Text style={[styles.filterButtonText, filter === value && styles.filterButtonTextActive]}>{label}</Text>
             {count > 0 && (
@@ -105,32 +161,82 @@ const ModerationAllScreen: React.FC = () => {
         </TouchableOpacity>
     );
 
-    if (loading && !refreshing) {
+    const renderRecipeCard = useCallback(
+        ({ item: recipe }: { item: any }) => (
+            <TouchableOpacity style={styles.recipeCard} onPress={() => openDetailModal(recipe)} activeOpacity={0.7}>
+                <View style={styles.recipeHeader}>
+                    <Text style={styles.recipeName} numberOfLines={1}>
+                        {recipe.name}
+                    </Text>
+                    <StatusBadge status={recipe.status} />
+                </View>
+                <View style={styles.recipeRow}>
+                    <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryText}>{recipe.category}</Text>
+                    </View>
+                    <Text style={styles.dateText}>{formatDate(recipe.created_at)}</Text>
+                </View>
+                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
+                {recipe.reviewed_by && recipe.reviewer_username && (
+                    <Text style={styles.reviewInfo}>Direview oleh: {recipe.reviewer_username}</Text>
+                )}
+                {recipe.status === "rejected" && recipe.rejection_reason && (
+                    <View style={styles.rejectionContainer}>
+                        <Text style={styles.rejectionText} numberOfLines={2}>
+                            {recipe.rejection_reason}
+                        </Text>
+                    </View>
+                )}
+                <Text style={styles.tapToView}>Tap untuk detail lengkap</Text>
+            </TouchableOpacity>
+        ),
+        [openDetailModal],
+    );
+
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {recipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        }
         return (
-            <View style={styles.container}>
-                <Header title="Semua Resep" />
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
+            </View>
+        );
+    };
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
+            return (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
                 </View>
-            </View>
-        );
-    }
-
-    if (error) {
-        return (
-            <View style={styles.container}>
-                <Header title="Semua Resep" />
+            );
+        }
+        if (error) {
+            return (
                 <View style={styles.centerContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={fetchAllRecipes}>
                         <Text style={styles.retryButtonText}>Retry</Text>
                     </TouchableOpacity>
                 </View>
+            );
+        }
+        return (
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyTitle}>Tidak ada resep</Text>
+                <Text style={styles.emptyText}>Tidak ada resep yang sesuai dengan filter.</Text>
             </View>
         );
-    }
-
-    const displayedRecipes = filteredRecipes.slice(0, displayCount);
+    };
 
     return (
         <View style={styles.container}>
@@ -148,8 +254,12 @@ const ModerationAllScreen: React.FC = () => {
                 <FilterButton label="Ditolak" value="rejected" count={counts.rejected} />
             </ScrollView>
 
-            <ScrollView
-                style={styles.content}
+            <FlatList
+                data={displayedRecipes}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderRecipeCard}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -158,62 +268,10 @@ const ModerationAllScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                {filteredRecipes.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>Tidak ada resep</Text>
-                        <Text style={styles.emptyText}>Tidak ada resep yang sesuai dengan filter.</Text>
-                    </View>
-                ) : (
-                    <>
-                        {displayedRecipes.map((recipe) => (
-                            <TouchableOpacity
-                                key={recipe.id}
-                                style={styles.recipeCard}
-                                onPress={() => openDetailModal(recipe)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.recipeHeader}>
-                                    <Text style={styles.recipeName} numberOfLines={1}>
-                                        {recipe.name}
-                                    </Text>
-                                    <StatusBadge status={recipe.status} />
-                                </View>
-
-                                <View style={styles.recipeRow}>
-                                    <View style={styles.categoryBadge}>
-                                        <Text style={styles.categoryText}>{recipe.category}</Text>
-                                    </View>
-                                    <Text style={styles.dateText}>{formatDate(recipe.created_at)}</Text>
-                                </View>
-
-                                <Text style={styles.recipeInfo}>Oleh: {recipe.creator_username}</Text>
-
-                                {recipe.reviewed_by && recipe.reviewer_username && (
-                                    <Text style={styles.reviewInfo}>Direview oleh: {recipe.reviewer_username}</Text>
-                                )}
-
-                                {recipe.status === "rejected" && recipe.rejection_reason && (
-                                    <View style={styles.rejectionContainer}>
-                                        <Text style={styles.rejectionText} numberOfLines={2}>
-                                            {recipe.rejection_reason}
-                                        </Text>
-                                    </View>
-                                )}
-
-                                <Text style={styles.tapToView}>Tap untuk detail lengkap</Text>
-                            </TouchableOpacity>
-                        ))}
-
-                        <LoadMoreButton
-                            currentItems={displayCount}
-                            totalItems={filteredRecipes.length}
-                            onLoadMore={handleLoadMore}
-                            itemsPerPage={itemsPerPage}
-                        />
-                    </>
-                )}
-            </ScrollView>
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.content}
+            />
 
             <Modal
                 visible={detailModalVisible}
@@ -284,9 +342,39 @@ const ModerationAllScreen: React.FC = () => {
                                 </View>
                             )}
                         </ScrollView>
+
+                        {selectedRecipe.status === "pending" && (
+                            <View style={styles.modalActions}>
+                                <TouchableOpacity
+                                    style={[styles.approveButton, actionLoading && { opacity: 0.6 }]}
+                                    onPress={handleApprove}
+                                    disabled={actionLoading}
+                                >
+                                    {actionLoading ? (
+                                        <ActivityIndicator color={colors.success} />
+                                    ) : (
+                                        <Text style={styles.approveButtonText}>Setujui</Text>
+                                    )}
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.rejectButton, actionLoading && { opacity: 0.6 }]}
+                                    onPress={openRejectModal}
+                                    disabled={actionLoading}
+                                >
+                                    <Text style={styles.rejectButtonText}>Tolak</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
                     </View>
                 )}
             </Modal>
+
+            <RejectReasonModal
+                visible={rejectModalVisible}
+                onClose={() => setRejectModalVisible(false)}
+                onConfirm={handleReject}
+                loading={actionLoading}
+            />
         </View>
     );
 };
@@ -300,6 +388,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        paddingTop: 60,
         backgroundColor: colors.background,
     },
     filterContainer: {
@@ -320,6 +409,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: colors.surface,
         marginRight: 8,
+        minWidth: 80,
     },
     filterButtonActive: {
         backgroundColor: colors.primary,
@@ -328,6 +418,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
         color: colors.textPrimary,
+        flexShrink: 0,
     },
     filterButtonTextActive: {
         color: colors.textInverse,
@@ -351,8 +442,8 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
     },
     content: {
-        flex: 1,
         padding: 16,
+        flexGrow: 1,
     },
     recipeCard: {
         backgroundColor: colors.surface,
@@ -461,6 +552,18 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontSize: 16,
     },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
+    },
+    footerLoader: {
+        marginTop: 4,
+    },
     modalContainer: {
         flex: 1,
         backgroundColor: colors.surface,
@@ -515,6 +618,37 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: colors.textPrimary,
         lineHeight: 20,
+    },
+    modalActions: {
+        flexDirection: "row",
+        gap: 12,
+        padding: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.divider,
+    },
+    approveButton: {
+        flex: 1,
+        backgroundColor: colors.successSoft,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    approveButtonText: {
+        color: colors.success,
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    rejectButton: {
+        flex: 1,
+        backgroundColor: colors.errorSoft,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    rejectButtonText: {
+        color: colors.error,
+        fontWeight: "600",
+        fontSize: 14,
     },
 });
 

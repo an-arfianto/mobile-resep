@@ -1,9 +1,9 @@
 import { colors } from "@/assets/color";
 import RecipeCard from "@/components/RecipeCard";
 import api from "@/services/api";
-import type { SearchCriteria, SearchResponse } from "@/types";
-import React, { useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import type { Recipe, SearchCriteria, SearchResponse } from "@/types";
+import React, { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Header from "../components/Header";
 
 const SearchScreen: React.FC = () => {
@@ -57,90 +57,103 @@ const SearchScreen: React.FC = () => {
         }
     };
 
+    const renderItem = useCallback(({ item }: { item: Recipe }) => <RecipeCard recipe={item} />, []);
+
+    const results: Recipe[] = searched && searchResult ? searchResult.data : [];
+
     return (
         <View style={styles.container}>
             <Header title="Cari Resep" />
 
-            <ScrollView style={styles.scrollContainer}>
-                <View style={styles.searchCard}>
-                    <Text style={styles.title}>Pencarian Resep Boolean Retrieval</Text>
+            <View style={styles.formContainer}>
+                <Text style={styles.title}>Pencarian Resep Boolean Retrieval</Text>
 
-                    <Text style={styles.label}>Operator Pencarian</Text>
-                    <View style={styles.operatorContainer}>
-                        {(["OR", "AND", "NOT"] as const).map((op) => (
-                            <TouchableOpacity
-                                key={op}
-                                style={[styles.operatorButton, operator === op && styles.operatorButtonActive]}
-                                onPress={() => setOperator(op)}
-                            >
-                                <Text style={[styles.operatorText, operator === op && styles.operatorTextActive]}>
-                                    {op}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <Text style={styles.label}>Bahan (Gunakan koma sebagai pemisah antar bahan)</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={ingredientsInput}
-                        onChangeText={setIngredientsInput}
-                        placeholder="e.g., ayam, nasi, kecap"
-                        placeholderTextColor={colors.textMuted}
-                    />
-
-                    {operator === "NOT" && (
-                        <>
-                            <Text style={styles.label}>Bahan yang tidak diinginkan</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={excludedInput}
-                                onChangeText={setExcludedInput}
-                                placeholder="e.g., babi, cabai, wine"
-                                placeholderTextColor={colors.textMuted}
-                            />
-                        </>
-                    )}
-
-                    <TouchableOpacity style={styles.searchButton} onPress={handleSearch} disabled={loading}>
-                        <Text style={styles.searchButtonText}>{loading ? "Mohon Tunggu..." : "Cari Resep"}</Text>
-                    </TouchableOpacity>
+                <Text style={styles.label}>Operator Pencarian</Text>
+                <View style={styles.operatorContainer}>
+                    {(["OR", "AND", "NOT"] as const).map((op) => (
+                        <TouchableOpacity
+                            key={op}
+                            style={[styles.operatorButton, operator === op && styles.operatorButtonActive]}
+                            onPress={() => setOperator(op)}
+                        >
+                            <Text style={[styles.operatorText, operator === op && styles.operatorTextActive]}>
+                                {op}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
-                {searched && (
-                    <View style={styles.resultsSection}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color={colors.primary} />
-                        ) : searchResult ? (
-                            <>
-                                <View style={styles.resultCard}>
-                                    <Text style={styles.resultTitle}>Hasil Pencarian</Text>
-                                    <Text style={styles.resultText}>
-                                        Ditemukan <Text style={styles.bold}>{searchResult.count}</Text> resep
-                                        menggunakan <Text style={styles.bold}>{searchResult.operator}</Text> operator
-                                    </Text>
-                                    <Text style={styles.resultDetail}>
-                                        Bahan yang diinginkan: {searchResult.searchedIngredients.join(", ")}
-                                    </Text>
-                                    {searchResult.excludedIngredients && (
-                                        <Text style={styles.resultDetail}>
-                                            Bahan yang tidak diinginkan: {searchResult.excludedIngredients.join(", ")}
-                                        </Text>
-                                    )}
-                                </View>
+                <Text style={styles.label}>Bahan (Gunakan koma sebagai pemisah antar bahan)</Text>
+                <TextInput
+                    style={styles.input}
+                    value={ingredientsInput}
+                    onChangeText={setIngredientsInput}
+                    placeholder="e.g., ayam, nasi, kecap"
+                    placeholderTextColor={colors.textMuted}
+                />
 
-                                {searchResult.count > 0 ? (
-                                    searchResult.data.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)
-                                ) : (
-                                    <Text style={styles.emptyText}>
-                                        Resep tidak ditemukan. Coba dengan bahan yang lain.
-                                    </Text>
-                                )}
-                            </>
-                        ) : null}
-                    </View>
+                {operator === "NOT" && (
+                    <>
+                        <Text style={styles.label}>Bahan yang tidak diinginkan</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={excludedInput}
+                            onChangeText={setExcludedInput}
+                            placeholder="e.g., babi, cabai, wine"
+                            placeholderTextColor={colors.textMuted}
+                        />
+                    </>
                 )}
-            </ScrollView>
+
+                <TouchableOpacity
+                    style={[styles.searchButton, loading && { opacity: 0.7 }]}
+                    onPress={handleSearch}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={colors.textInverse} />
+                    ) : (
+                        <Text style={styles.searchButtonText}>Cari Resep</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+
+            {searched && searchResult && (
+                <View style={styles.resultCard}>
+                    <Text style={styles.resultText}>
+                        Ditemukan <Text style={styles.bold}>{searchResult.count}</Text> resep menggunakan{" "}
+                        <Text style={styles.bold}>{searchResult.operator}</Text> operator
+                    </Text>
+                    <Text style={styles.resultDetail}>Bahan: {searchResult.searchedIngredients.join(", ")}</Text>
+                    {searchResult.excludedIngredients && searchResult.excludedIngredients.length > 0 && (
+                        <Text style={styles.resultDetail}>
+                            Dikecualikan: {searchResult.excludedIngredients.join(", ")}
+                        </Text>
+                    )}
+                </View>
+            )}
+
+            <FlatList
+                data={results}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderItem}
+                ListEmptyComponent={
+                    searched && !loading ? (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>Resep tidak ditemukan. Coba dengan bahan yang lain.</Text>
+                        </View>
+                    ) : null
+                }
+                ListFooterComponent={
+                    results.length > 0 ? (
+                        <View style={styles.footer}>
+                            <Text style={styles.footerText}>{results.length} resep ditemukan</Text>
+                        </View>
+                    ) : null
+                }
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+            />
         </View>
     );
 };
@@ -150,26 +163,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.background,
     },
-    scrollContainer: {
-        flex: 1,
-        padding: 16,
-    },
-    searchCard: {
+    formContainer: {
         backgroundColor: colors.surface,
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
-        shadowColor: colors.border,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
     },
     title: {
-        fontSize: 24,
+        fontSize: 18,
         fontWeight: "bold",
         color: colors.textPrimary,
-        marginBottom: 16,
+        marginBottom: 12,
     },
     label: {
         fontSize: 14,
@@ -180,7 +184,7 @@ const styles = StyleSheet.create({
     operatorContainer: {
         flexDirection: "row",
         gap: 8,
-        marginBottom: 16,
+        marginBottom: 12,
     },
     operatorButton: {
         flex: 1,
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 12,
         fontSize: 14,
-        marginBottom: 16,
+        marginBottom: 12,
         backgroundColor: colors.inputBackground,
         color: colors.textPrimary,
     },
@@ -220,39 +224,46 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontSize: 16,
     },
-    resultsSection: {
-        marginTop: 8,
-    },
     resultCard: {
         backgroundColor: colors.secondarySoft,
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 16,
-    },
-    resultTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: colors.textPrimary,
-        marginBottom: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.divider,
     },
     resultText: {
         fontSize: 14,
         color: colors.textPrimary,
-        marginBottom: 4,
+        marginBottom: 2,
     },
     resultDetail: {
         fontSize: 12,
         color: colors.textSecondary,
-        marginTop: 4,
+        marginTop: 2,
     },
     bold: {
         fontWeight: "bold",
     },
+    listContent: {
+        padding: 16,
+        flexGrow: 1,
+    },
+    emptyContainer: {
+        alignItems: "center",
+        marginTop: 40,
+    },
     emptyText: {
         textAlign: "center",
         color: colors.textPrimary,
-        fontSize: 16,
-        marginTop: 24,
+        fontSize: 15,
+    },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 16,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
     },
 });
 

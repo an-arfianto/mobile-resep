@@ -6,7 +6,16 @@ import type { Recipe, RecipeStatus, RootStackParamList } from "@/types";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -17,6 +26,8 @@ const MyRecipesScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<"all" | RecipeStatus>("all");
+    const [displayCount, setDisplayCount] = useState(10);
+    const itemsPerPage = 10;
 
     const fetchMyRecipes = async () => {
         try {
@@ -25,6 +36,7 @@ const MyRecipesScreen: React.FC = () => {
             const response = await api.recipes.getMy();
             const myRecipes = Array.isArray(response.data) ? response.data : [response.data];
             setRecipes(myRecipes);
+            setDisplayCount(10);
         } catch (err: any) {
             if (err.cancelled) return;
             setError(err.message);
@@ -49,6 +61,19 @@ const MyRecipesScreen: React.FC = () => {
 
     const filteredRecipes = statusFilter === "all" ? recipes : recipes.filter((r) => r.status === statusFilter);
 
+    const displayedRecipes = filteredRecipes.slice(0, displayCount);
+    const hasMore = displayCount < filteredRecipes.length;
+
+    const handleLoadMore = () => {
+        if (!hasMore) return;
+        setDisplayCount((prev) => Math.min(prev + itemsPerPage, filteredRecipes.length));
+    };
+
+    const handleFilterChange = (value: "all" | RecipeStatus) => {
+        setStatusFilter(value);
+        setDisplayCount(10);
+    };
+
     const counts = {
         all: recipes.length,
         approved: recipes.filter((r) => r.status === "approved").length,
@@ -59,7 +84,7 @@ const MyRecipesScreen: React.FC = () => {
     const FilterButton = ({ label, value, count }: any) => (
         <TouchableOpacity
             style={[styles.filterButton, statusFilter === value && styles.filterButtonActive]}
-            onPress={() => setStatusFilter(value)}
+            onPress={() => handleFilterChange(value)}
         >
             <Text style={[styles.filterButtonText, statusFilter === value && styles.filterButtonTextActive]}>
                 {label}
@@ -73,6 +98,56 @@ const MyRecipesScreen: React.FC = () => {
             )}
         </TouchableOpacity>
     );
+
+    const ListEmpty = () => {
+        if (loading && !refreshing) {
+            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />;
+        }
+        if (error) {
+            return (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity style={styles.retryButton} onPress={fetchMyRecipes}>
+                        <Text style={styles.retryButtonText}>Coba lagi</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        if (recipes.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Anda belum membuat resep.</Text>
+                    <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate("CreateRecipe")}>
+                        <Text style={styles.emptyButtonText}>Buat resep untuk pertama kali</Text>
+                    </TouchableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={styles.emptyFilterContainer}>
+                <Text style={styles.emptyFilterText}>Tidak ada resep.</Text>
+            </View>
+        );
+    };
+
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore) {
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {filteredRecipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        }
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {filteredRecipes.length} resep</Text>
+            </View>
+        );
+    };
 
     return (
         <View style={styles.container}>
@@ -98,8 +173,12 @@ const MyRecipesScreen: React.FC = () => {
                 </ScrollView>
             )}
 
-            <ScrollView
-                style={styles.content}
+            <FlatList
+                data={displayedRecipes}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item: recipe }) => <RecipeCardWithStatus recipe={recipe} onDelete={fetchMyRecipes} />}
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -108,42 +187,10 @@ const MyRecipesScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
-            >
-                {loading && !refreshing ? (
-                    <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-                ) : error ? (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{error}</Text>
-                        <TouchableOpacity style={styles.retryButton} onPress={fetchMyRecipes}>
-                            <Text style={styles.retryButtonText}>Coba lagi</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : recipes.length > 0 ? (
-                    <>
-                        {filteredRecipes.length > 0 ? (
-                            <>
-                                {filteredRecipes.map((recipe) => (
-                                    <RecipeCardWithStatus key={recipe.id} recipe={recipe} onDelete={fetchMyRecipes} />
-                                ))}
-                            </>
-                        ) : (
-                            <View style={styles.emptyFilterContainer}>
-                                <Text style={styles.emptyFilterText}>Tidak ada resep.</Text>
-                            </View>
-                        )}
-                    </>
-                ) : (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>Anda belum membuat resep.</Text>
-                        <TouchableOpacity
-                            style={styles.emptyButton}
-                            onPress={() => navigation.navigate("CreateRecipe")}
-                        >
-                            <Text style={styles.emptyButtonText}>Buat resep untuk pertama kali</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </ScrollView>
+                ListEmptyComponent={<ListEmpty />}
+                ListFooterComponent={<ListFooter />}
+                contentContainerStyle={styles.content}
+            />
         </View>
     );
 };
@@ -220,8 +267,8 @@ const styles = StyleSheet.create({
         color: colors.textPrimary,
     },
     content: {
-        flex: 1,
         padding: 16,
+        flexGrow: 1,
     },
     loader: {
         marginTop: 40,
@@ -275,6 +322,18 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: colors.textPrimary,
         textAlign: "center",
+    },
+    footer: {
+        alignItems: "center",
+        paddingVertical: 20,
+    },
+    footerText: {
+        fontSize: 13,
+        color: colors.textMuted,
+        marginBottom: 4,
+    },
+    footerLoader: {
+        marginTop: 4,
     },
 });
 
