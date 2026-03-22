@@ -248,16 +248,16 @@ const styles = StyleSheet.create({
         borderColor: colors.border,
         borderRadius: 8,
         paddingHorizontal: 12,
-        paddingVertical: 0, // Remove vertical padding to rely on height
+        paddingVertical: 0,
         fontSize: 14,
         marginBottom: 16,
         color: colors.textPrimary,
         backgroundColor: colors.inputBackground,
     },
     textArea: {
-        height: undefined, // Override fixed height for multiline
+        height: undefined,
         minHeight: 100,
-        paddingVertical: 12, // Add back vertical padding for multiline
+        paddingVertical: 12,
         textAlignVertical: "top",
     },
     pickerContainer: {
