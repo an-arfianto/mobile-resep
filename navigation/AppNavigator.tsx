@@ -1,6 +1,5 @@
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import AdminTabNavigator from "@/navigation/AdminTabNavigator";
-import ModeratorTabNavigator from "@/navigation/ModeratorTabNavigator";
 import UserTabNavigator from "@/navigation/UserTabNavigator";
 import LoginScreen from "@/screens/LoginScreen";
 import RegisterScreen from "@/screens/RegisterScreen";
@@ -10,27 +9,26 @@ import React from "react";
 const Stack = createNativeStackNavigator();
 
 const AppNavigator: React.FC = () => {
-    const { isAuthenticated, user } = useAuth();
-    const isAdmin = user?.role_id === 1;
-    const isModerator = user?.role_id === 2;
+    const { isAuthenticated, isAdmin } = useAuthStore();
 
     if (!isAuthenticated) {
         return (
             <Stack.Navigator>
-                <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-                <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+                <Stack.Screen
+                    name="Login"
+                    component={LoginScreen}
+                    options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                    name="Register"
+                    component={RegisterScreen}
+                    options={{ headerShown: false }}
+                />
             </Stack.Navigator>
         );
     }
 
-    if (isAdmin) {
-        return <AdminTabNavigator />;
-    }
-
-    if (isModerator) {
-        return <ModeratorTabNavigator />;
-    }
-
+    if (isAdmin) return <AdminTabNavigator />;
     return <UserTabNavigator />;
 };
 

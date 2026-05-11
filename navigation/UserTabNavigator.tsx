@@ -61,7 +61,7 @@ const UserTabNavigator: React.FC = () => {
                     borderTopColor: colors.divider,
                     paddingTop: 10,
                     paddingBottom: 10,
-                    height: 80,
+                    height: 70,
                 },
             }}
         >

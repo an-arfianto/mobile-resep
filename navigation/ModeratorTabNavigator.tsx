@@ -11,10 +11,10 @@ import MyRecipesScreen from "@/screens/MyRecipesScreen";
 import RecipeDetailScreen from "@/screens/RecipeDetailScreen";
 import SearchScreen from "@/screens/SearchScreen";
 
-import ModerationAllScreen from "@/screens/moderation/ModerationAllScreen";
-import ModerationDashboardScreen from "@/screens/moderation/ModerationDashboardScreen";
-import ModerationPendingScreen from "@/screens/moderation/ModerationPendingScreen";
-import ModerationReviewedScreen from "@/screens/moderation/ModerationReviewedScreen";
+import ModeratorAllScreen from "@/screens/moderator/ModeratorAllScreen";
+import ModeratorDashboardScreen from "@/screens/moderator/ModeratorDashboardScreen";
+import ModeratorPendingScreen from "@/screens/moderator/ModeratorPendingScreen";
+import ModeratorReviewedScreen from "@/screens/moderator/ModeratorReviewedScreen";
 import ProfileScreen from "@/screens/ProfileScreen";
 
 const Tab = createBottomTabNavigator();
@@ -43,12 +43,12 @@ const MyRecipesStack = () => (
     </Stack.Navigator>
 );
 
-const ModerationStack = () => (
+const ModeratorStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="ModerationDashboardMain" component={ModerationDashboardScreen} />
-        <Stack.Screen name="ModerationPending" component={ModerationPendingScreen} />
-        <Stack.Screen name="ModerationReviewed" component={ModerationReviewedScreen} />
-        <Stack.Screen name="ModerationAll" component={ModerationAllScreen} />
+        <Stack.Screen name="ModeratorDashboardMain" component={ModeratorDashboardScreen} />
+        <Stack.Screen name="ModeratorPending" component={ModeratorPendingScreen} />
+        <Stack.Screen name="ModeratorReviewed" component={ModeratorReviewedScreen} />
+        <Stack.Screen name="ModeratorAll" component={ModeratorAllScreen} />
         <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
     </Stack.Navigator>
 );
@@ -76,7 +76,7 @@ const ModeratorTabNavigator: React.FC = () => {
                     borderTopColor: colors.divider,
                     paddingTop: 10,
                     paddingBottom: 10,
-                    height: 80,
+                    height: 70,
                 },
             }}
         >
@@ -105,8 +105,8 @@ const ModeratorTabNavigator: React.FC = () => {
                 }}
             />
             <Tab.Screen
-                name="ModerationDashboard"
-                component={ModerationStack}
+                name="ModeratorDashboard"
+                component={ModeratorStack}
                 options={{
                     tabBarLabel: "Moderasi",
                     tabBarIcon: ({ color }) => <Feather name="shield" size={22} color={color} />,

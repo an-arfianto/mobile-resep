@@ -1,14 +1,17 @@
 import type {
+    AdminRecipesResponse,
+    AdminStatsResponse,
     AuthResponse,
     CreateRecipeData,
     LoginCredentials,
-    ModerationRecipesResponse,
-    ModerationStatsResponse,
+    MessageResponse,
+    ProfileResponse,
     RecipeResponse,
     RegisterData,
     SearchCriteria,
     SearchResponse,
-    User,
+    UserDetailResponse,
+    UserListResponse,
 } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
@@ -18,12 +21,9 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const api: AxiosInstance = axios.create({
     baseURL: API_URL,
     timeout: 10000,
-    headers: {
-        "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
 });
 
-// request interceptor
 api.interceptors.request.use(
     async (config: InternalAxiosRequestConfig) => {
         const token = await AsyncStorage.getItem("token");
@@ -32,17 +32,13 @@ api.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    },
+    (error) => Promise.reject(error),
 );
 
-// Response interceptor
 api.interceptors.response.use(
     (response: AxiosResponse) => response.data,
     (error) => {
         if (axios.isCancel(error)) {
-            // request batal
             return Promise.reject({ message: "cancelled", cancelled: true });
         }
         const message = error.response?.data?.message || "Terjadi kesalahan";
@@ -52,98 +48,82 @@ api.interceptors.response.use(
 
 export default {
     auth: {
-        register: (data: RegisterData): Promise<AuthResponse> => api.post("/users/register", data),
+        register: (data: RegisterData): Promise<AuthResponse> => api.post("/auth/register", data),
 
-        login: (data: LoginCredentials): Promise<AuthResponse> => api.post("/users/login", data),
+        login: (data: LoginCredentials): Promise<AuthResponse> => api.post("/auth/login", data),
 
-        getCurrentUser: (
-            signal?: AbortSignal,
-        ): Promise<{
-            success: boolean;
-            message: string;
-            data: User;
-        }> => api.get("/users/me", { signal }),
+        getCurrentUser: (signal?: AbortSignal): Promise<UserDetailResponse> =>
+            api.get("/auth/me", { signal }),
     },
 
     recipes: {
-        getAll: (params?: Record<string, any>, signal?: AbortSignal): Promise<RecipeResponse> =>
+        getAll: (params?: Record<string, string>, signal?: AbortSignal): Promise<RecipeResponse> =>
             api.get("/recipes", { params, signal }),
 
-        getMy: (signal?: AbortSignal): Promise<RecipeResponse> => api.get("/recipes/my", { signal }),
+        getMy: (signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get("/recipes/my", { signal }),
 
-        getById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> => api.get(`/recipes/${id}`, { signal }),
+        getById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get(`/recipes/${id}`, { signal }),
 
         search: (data: SearchCriteria): Promise<SearchResponse> => api.post("/search", data),
 
         create: (data: CreateRecipeData): Promise<RecipeResponse> => api.post("/recipes", data),
 
-        update: (id: number, data: CreateRecipeData): Promise<RecipeResponse> => api.put(`/recipes/${id}`, data),
+        update: (id: number, data: CreateRecipeData): Promise<RecipeResponse> =>
+            api.put(`/recipes/${id}`, data),
 
-        delete: (id: number): Promise<{ success: boolean; message: string }> => api.delete(`/recipes/${id}`),
-    },
-
-    moderation: {
-        getStats: (signal?: AbortSignal): Promise<ModerationStatsResponse> => api.get("/moderation/stats", { signal }),
-
-        getPending: (signal?: AbortSignal): Promise<ModerationRecipesResponse> =>
-            api.get("/moderation/pending", { signal }),
-
-        getByStatus: (
-            status: "pending" | "approved" | "rejected",
-            signal?: AbortSignal,
-        ): Promise<ModerationRecipesResponse> => api.get("/moderation/recipes", { params: { status }, signal }),
-
-        getAllRecipes: (signal?: AbortSignal): Promise<ModerationRecipesResponse> =>
-            api.get("/moderation/recipes/all", { signal }),
-
-        getRecipeById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
-            api.get(`/moderation/recipes/${id}`, { signal }),
-
-        approve: (id: number): Promise<RecipeResponse> => api.put(`/moderation/recipes/${id}/approve`),
-
-        reject: (id: number, reason?: string): Promise<RecipeResponse> =>
-            api.put(`/moderation/recipes/${id}/reject`, { reason }),
+        delete: (id: number): Promise<MessageResponse> => api.delete(`/recipes/${id}`),
     },
 
     profile: {
-        getProfile: (signal?: AbortSignal): Promise<{ success: boolean; data: any }> => api.get("/profile", { signal }),
+        getProfile: (signal?: AbortSignal): Promise<ProfileResponse> =>
+            api.get("/profile", { signal }),
 
-        updateProfile: (username: string): Promise<{ success: boolean; message: string; data: any }> =>
+        updateProfile: (username: string): Promise<MessageResponse> =>
             api.put("/profile", { username }),
 
-        updatePassword: (
-            currentPassword: string,
-            newPassword: string,
-        ): Promise<{ success: boolean; message: string }> =>
+        updatePassword: (currentPassword: string, newPassword: string): Promise<MessageResponse> =>
             api.put("/profile/password", { currentPassword, newPassword }),
     },
 
     admin: {
-        getStats: (signal?: AbortSignal): Promise<{ success: boolean; message: string; data: any }> =>
+        getStats: (signal?: AbortSignal): Promise<AdminStatsResponse> =>
             api.get("/admin/stats", { signal }),
 
-        getUsers: (signal?: AbortSignal): Promise<{ success: boolean; message: string; count: number; data: any[] }> =>
+        getUsers: (signal?: AbortSignal): Promise<UserListResponse> =>
             api.get("/admin/users", { signal }),
 
-        getRecipes: (
-            signal?: AbortSignal,
-        ): Promise<{
-            success: boolean;
-            message: string;
-            count: number;
-            data: any[];
-        }> => api.get("/admin/recipes", { signal }),
+        suspendUser: (userId: number): Promise<MessageResponse> =>
+            api.put(`/admin/users/${userId}/suspend`),
 
-        deleteRecipe: (id: number): Promise<{ success: boolean; message: string }> =>
-            api.delete(`/admin/recipes/${id}`),
+        unsuspendUser: (userId: number): Promise<MessageResponse> =>
+            api.put(`/admin/users/${userId}/unsuspend`),
 
-        promoteUser: (userId: number): Promise<{ success: boolean; message: string }> =>
-            api.put(`/admin/users/${userId}/promote`),
-
-        demoteUser: (userId: number): Promise<{ success: boolean; message: string }> =>
-            api.put(`/admin/users/${userId}/demote`),
-
-        deleteUser: (userId: number): Promise<{ success: boolean; message: string }> =>
+        deleteUser: (userId: number): Promise<MessageResponse> =>
             api.delete(`/admin/users/${userId}`),
+
+        getRecipe: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get(`/admin/recipes/${id}`, { signal }),
+
+        getRecipes: (signal?: AbortSignal): Promise<AdminRecipesResponse> =>
+            api.get("/admin/recipes", { signal }),
+
+        getPendingRecipes: (signal?: AbortSignal): Promise<AdminRecipesResponse> =>
+            api.get("/admin/recipes/pending", { signal }),
+
+        getRecipesByStatus: (
+            status: "pending" | "approved" | "rejected",
+            signal?: AbortSignal,
+        ): Promise<AdminRecipesResponse> =>
+            api.get("/admin/recipes/status", { params: { status }, signal }),
+
+        approveRecipe: (id: number): Promise<RecipeResponse> =>
+            api.put(`/admin/recipes/${id}/approve`),
+
+        rejectRecipe: (id: number, reason?: string): Promise<RecipeResponse> =>
+            api.put(`/admin/recipes/${id}/reject`, { reason }),
+
+        deleteRecipe: (id: number): Promise<MessageResponse> => api.delete(`/admin/recipes/${id}`),
     },
 };

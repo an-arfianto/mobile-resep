@@ -1,5 +1,6 @@
 import { colors } from "@/assets/color";
-import type { Ingredient, Recipe, RootStackParamList } from "@/types";
+import { getIngredientsDisplay } from "@/utils/recipe";
+import type { Recipe, RootStackParamList } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React from "react";
@@ -7,49 +8,14 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface RecipeCardProps {
-    recipe: Recipe;
-}
-
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+const RecipeCard: React.FC<{ recipe: Recipe }> = ({ recipe }) => {
     const navigation = useNavigation<NavigationProp>();
 
-    const handlePress = () => {
-        navigation.navigate("RecipeDetail", { recipeId: recipe.id });
-    };
-
-    const formatIngredient = (ing: Ingredient): string => {
-        const parts: string[] = [];
-
-        if (ing.quantity !== null && ing.quantity !== undefined) {
-            parts.push(ing.quantity.toString());
-        }
-
-        if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
-            parts.push(ing.unit);
-        }
-
-        parts.push(ing.name);
-
-        return parts.join(" ");
-    };
-
-    const getIngredientsDisplay = (): string => {
-        if (!recipe.ingredients) return "";
-
-        if (typeof recipe.ingredients === "string") {
-            return recipe.ingredients;
-        }
-
-        if (Array.isArray(recipe.ingredients)) {
-            return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
-        }
-
-        return "";
-    };
-
     return (
-        <TouchableOpacity style={styles.card} onPress={handlePress}>
+        <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
+        >
             <View style={styles.header}>
                 <Text style={styles.title} numberOfLines={2}>
                     {recipe.name}
@@ -60,13 +26,8 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
             </View>
 
             <View style={styles.tagContainer}>
-                {recipe.creator_username && (
-                    <View style={styles.creatorContainer}>
-                        <Text style={styles.creatorText}>Oleh: {recipe.creator_username}</Text>
-                    </View>
-                )}
-
-                {recipe.matched_count !== undefined && recipe.matched_count !== null && (
+                {recipe.creator_username && <Text style={styles.creatorText}>Oleh: {recipe.creator_username}</Text>}
+                {recipe.matched_count != null && (
                     <View style={styles.matchTag}>
                         <Text style={styles.matchText}>{recipe.matched_count} bahan sama</Text>
                     </View>
@@ -74,7 +35,7 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
             </View>
 
             <Text style={styles.ingredients} numberOfLines={2}>
-                {getIngredientsDisplay()}
+                {getIngredientsDisplay(recipe.ingredients)}
             </Text>
 
             <View style={styles.button}>

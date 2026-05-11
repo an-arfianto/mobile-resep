@@ -1,11 +1,13 @@
 import { colors } from "@/assets/color";
+import RecipeDetailModal from "@/components/RecipeDetailModal";
 import StatusBadge from "@/components/StatusBadge";
 import api from "@/services/api";
-import type { Ingredient, Recipe, RootStackParamList } from "@/types";
+import type { Recipe, RootStackParamList } from "@/types";
+import { formatDate, getIngredientsDisplay } from "@/utils/recipe";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface RecipeCardWithStatusProps {
     recipe: Recipe;
@@ -16,6 +18,16 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onDelete }) => {
     const navigation = useNavigation<NavigationProp>();
+    const [deleting, setDeleting] = useState(false);
+    const [detailVisible, setDetailVisible] = useState(false);
+
+    const handleCardPress = () => {
+        if (recipe.status === "approved") {
+            navigation.navigate("RecipeDetail", { recipeId: recipe.id });
+        } else {
+            setDetailVisible(true);
+        }
+    };
 
     const handleDelete = () => {
         Alert.alert("Hapus Resep", `Anda yakin menghapus "${recipe.name}"?`, [
@@ -24,70 +36,32 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
                 text: "Hapus",
                 style: "destructive",
                 onPress: async () => {
+                    setDeleting(true);
                     try {
                         await api.recipes.delete(recipe.id);
-                        if (onDelete) {
-                            onDelete();
-                        }
-                        Alert.alert("Success", "Resep berhasil terhapus");
-                    } catch (err: any) {
-                        Alert.alert("Error", err.message);
+                        onDelete?.();
+                        Alert.alert("Berhasil", "Resep berhasil terhapus");
+                    } catch (err: unknown) {
+                        const message =
+                            typeof err === "object" && err !== null && "message" in err
+                                ? String((err as { message: unknown }).message)
+                                : "Terjadi kesalahan";
+                        Alert.alert("Error", message);
+                    } finally {
+                        setDeleting(false);
                     }
                 },
             },
         ]);
     };
 
-    const formatIngredient = (ing: Ingredient): string => {
-        const parts: string[] = [];
-
-        if (ing.quantity !== null && ing.quantity !== undefined) {
-            parts.push(ing.quantity.toString());
-        }
-
-        if (ing.unit !== null && ing.unit !== undefined && ing.unit.trim() !== "") {
-            parts.push(ing.unit);
-        }
-
-        parts.push(ing.name);
-
-        return parts.join(" ");
-    };
-
-    const getIngredientsDisplay = (): string => {
-        if (!recipe.ingredients) return "";
-
-        if (typeof recipe.ingredients === "string") {
-            return recipe.ingredients;
-        }
-
-        if (Array.isArray(recipe.ingredients)) {
-            return recipe.ingredients.map((ing: Ingredient) => formatIngredient(ing)).join(", ");
-        }
-
-        return "";
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    };
-
     return (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.id })}
-            activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.card} onPress={handleCardPress} activeOpacity={0.7}>
             <View style={styles.header}>
                 <Text style={styles.title} numberOfLines={2}>
                     {recipe.name}
                 </Text>
-                <StatusBadge status={recipe.status || "pending"} />
+                <StatusBadge status={recipe.status ?? "pending"} />
             </View>
 
             <View style={styles.categoryContainer}>
@@ -97,7 +71,7 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
             </View>
 
             <Text style={styles.ingredients} numberOfLines={2}>
-                {getIngredientsDisplay()}
+                {getIngredientsDisplay(recipe.ingredients)}
             </Text>
 
             <Text style={styles.date}>{formatDate(recipe.created_at)}</Text>
@@ -109,24 +83,30 @@ const RecipeCardWithStatus: React.FC<RecipeCardWithStatusProps> = ({ recipe, onD
                 </View>
             )}
 
+            <RecipeDetailModal
+                visible={detailVisible}
+                recipe={recipe}
+                onClose={() => setDetailVisible(false)}
+            />
+
             <View style={styles.actions}>
                 <TouchableOpacity
                     style={styles.editButton}
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        navigation.navigate("EditRecipe", { recipeId: recipe.id });
-                    }}
+                    onPress={() => navigation.navigate("EditRecipe", { recipeId: recipe.id })}
+                    disabled={deleting}
                 >
                     <Text style={styles.editButtonText}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        handleDelete();
-                    }}
+                    style={[styles.deleteButton, deleting && { opacity: 0.6 }]}
+                    onPress={handleDelete}
+                    disabled={deleting}
                 >
-                    <Text style={styles.deleteButtonText}>Hapus</Text>
+                    {deleting ? (
+                        <ActivityIndicator color={colors.error} size="small" />
+                    ) : (
+                        <Text style={styles.deleteButtonText}>Hapus</Text>
+                    )}
                 </TouchableOpacity>
             </View>
         </TouchableOpacity>

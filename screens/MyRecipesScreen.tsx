@@ -1,8 +1,8 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
 import RecipeCardWithStatus from "@/components/RecipeCardWithStatus";
-import api from "@/services/api";
-import type { Recipe, RecipeStatus, RootStackParamList } from "@/types";
+import { useRecipeStore } from "@/stores/recipeStore";
+import type { RecipeStatus, RootStackParamList } from "@/types";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
@@ -21,77 +21,77 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const MyRecipesScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+    const { myRecipes, loading, error, showMyRecipes, deleteRecipe } = useRecipeStore();
+
+    const [refreshing, setRefreshing] = useState(false);
     const [statusFilter, setStatusFilter] = useState<"all" | RecipeStatus>("all");
     const [displayCount, setDisplayCount] = useState(10);
-    const itemsPerPage = 10;
-
-    const fetchMyRecipes = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const response = await api.recipes.getMy();
-            const myRecipes = Array.isArray(response.data) ? response.data : [response.data];
-            setRecipes(myRecipes);
-            setDisplayCount(10);
-        } catch (err: any) {
-            if (err.cancelled) return;
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const onRefresh = useCallback(async () => {
-        setRefreshing(true);
-        await fetchMyRecipes();
-        setRefreshing(false);
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
-            const controller = new AbortController();
-            fetchMyRecipes();
-            return () => controller.abort();
+            showMyRecipes();
         }, []),
     );
 
-    const filteredRecipes = statusFilter === "all" ? recipes : recipes.filter((r) => r.status === statusFilter);
-
-    const displayedRecipes = filteredRecipes.slice(0, displayCount);
-    const hasMore = displayCount < filteredRecipes.length;
-
-    const handleLoadMore = () => {
-        if (!hasMore) return;
-        setDisplayCount((prev) => Math.min(prev + itemsPerPage, filteredRecipes.length));
-    };
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await showMyRecipes();
+        setRefreshing(false);
+    }, []);
 
     const handleFilterChange = (value: "all" | RecipeStatus) => {
         setStatusFilter(value);
         setDisplayCount(10);
     };
 
-    const counts = {
-        all: recipes.length,
-        approved: recipes.filter((r) => r.status === "approved").length,
-        pending: recipes.filter((r) => r.status === "pending").length,
-        rejected: recipes.filter((r) => r.status === "rejected").length,
+    const handleDelete = async (id: number) => {
+        await deleteRecipe(id);
     };
 
-    const FilterButton = ({ label, value, count }: any) => (
+    const filtered =
+        statusFilter === "all" ? myRecipes : myRecipes.filter((r) => r.status === statusFilter);
+
+    const displayed = filtered.slice(0, displayCount);
+    const hasMore = displayCount < filtered.length;
+
+    const counts = {
+        all: myRecipes.length,
+        approved: myRecipes.filter((r) => r.status === "approved").length,
+        pending: myRecipes.filter((r) => r.status === "pending").length,
+        rejected: myRecipes.filter((r) => r.status === "rejected").length,
+    };
+
+    const FilterButton = ({
+        label,
+        value,
+        count,
+    }: {
+        label: string;
+        value: "all" | RecipeStatus;
+        count: number;
+    }) => (
         <TouchableOpacity
             style={[styles.filterButton, statusFilter === value && styles.filterButtonActive]}
             onPress={() => handleFilterChange(value)}
         >
-            <Text style={[styles.filterButtonText, statusFilter === value && styles.filterButtonTextActive]}>
+            <Text
+                style={[
+                    styles.filterButtonText,
+                    statusFilter === value && styles.filterButtonTextActive,
+                ]}
+            >
                 {label}
             </Text>
             {count > 0 && (
-                <View style={[styles.filterBadge, statusFilter === value && styles.filterBadgeActive]}>
-                    <Text style={[styles.filterBadgeText, statusFilter === value && styles.filterBadgeTextActive]}>
+                <View
+                    style={[styles.filterBadge, statusFilter === value && styles.filterBadgeActive]}
+                >
+                    <Text
+                        style={[
+                            styles.filterBadgeText,
+                            statusFilter === value && styles.filterBadgeTextActive,
+                        ]}
+                    >
                         {count}
                     </Text>
                 </View>
@@ -101,31 +101,34 @@ const MyRecipesScreen: React.FC = () => {
 
     const ListEmpty = () => {
         if (loading && !refreshing) {
-            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />;
+            return <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />;
         }
         if (error) {
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchMyRecipes}>
+                    <TouchableOpacity style={styles.retryButton} onPress={showMyRecipes}>
                         <Text style={styles.retryButtonText}>Coba lagi</Text>
                     </TouchableOpacity>
                 </View>
             );
         }
-        if (recipes.length === 0) {
+        if (myRecipes.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>Anda belum membuat resep.</Text>
-                    <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate("CreateRecipe")}>
-                        <Text style={styles.emptyButtonText}>Buat resep untuk pertama kali</Text>
+                    <TouchableOpacity
+                        style={styles.emptyButton}
+                        onPress={() => navigation.navigate("CreateRecipe")}
+                    >
+                        <Text style={styles.emptyButtonText}>Buat resep pertama</Text>
                     </TouchableOpacity>
                 </View>
             );
         }
         return (
             <View style={styles.emptyFilterContainer}>
-                <Text style={styles.emptyFilterText}>Tidak ada resep.</Text>
+                <Text style={styles.emptyFilterText}>Tidak ada resep dengan filter ini.</Text>
             </View>
         );
     };
@@ -136,7 +139,7 @@ const MyRecipesScreen: React.FC = () => {
             return (
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        Memuat {displayCount} dari {filteredRecipes.length} resep
+                        Memuat {displayCount} dari {filtered.length} resep
                     </Text>
                     <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
                 </View>
@@ -144,7 +147,7 @@ const MyRecipesScreen: React.FC = () => {
         }
         return (
             <View style={styles.footer}>
-                <Text style={styles.footerText}>Menampilkan semua {filteredRecipes.length} resep</Text>
+                <Text style={styles.footerText}>Menampilkan semua {filtered.length} resep</Text>
             </View>
         );
     };
@@ -154,12 +157,15 @@ const MyRecipesScreen: React.FC = () => {
             <Header title="Resep Saya" />
 
             <View style={styles.actionBar}>
-                <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate("CreateRecipe")}>
+                <TouchableOpacity
+                    style={styles.createButton}
+                    onPress={() => navigation.navigate("CreateRecipe")}
+                >
                     <Text style={styles.createButtonText}>+ Tambah Resep</Text>
                 </TouchableOpacity>
             </View>
 
-            {recipes.length > 0 && (
+            {myRecipes.length > 0 && (
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -174,10 +180,14 @@ const MyRecipesScreen: React.FC = () => {
             )}
 
             <FlatList
-                data={displayedRecipes}
+                data={displayed}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item: recipe }) => <RecipeCardWithStatus recipe={recipe} onDelete={fetchMyRecipes} />}
-                onEndReached={handleLoadMore}
+                renderItem={({ item }) => (
+                    <RecipeCardWithStatus recipe={item} onDelete={() => handleDelete(item.id)} />
+                )}
+                onEndReached={() => {
+                    if (hasMore) setDisplayCount((prev) => Math.min(prev + 10, filtered.length));
+                }}
                 onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl

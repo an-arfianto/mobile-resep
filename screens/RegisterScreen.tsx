@@ -1,5 +1,4 @@
 import { colors } from "@/assets/color";
-import { useAuth } from "@/context/AuthContext";
 import type { RootStackParamList } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -14,12 +13,13 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useAuthStore } from "@/stores/authStore";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const RegisterScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { register, loading, error } = useAuth();
+    const { register, loading, error } = useAuthStore();
     const [username, setUsername] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -43,7 +43,6 @@ const RegisterScreen: React.FC = () => {
         const success = await register({
             username,
             password,
-            role_id: 3,
         });
 
         if (success) {
@@ -52,7 +51,10 @@ const RegisterScreen: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.card}>
                     <Text style={styles.title}>Register</Text>
@@ -95,8 +97,14 @@ const RegisterScreen: React.FC = () => {
                         </View>
                     )}
 
-                    <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
-                        <Text style={styles.buttonText}>{loading ? "Mohon Tunggu..." : "Register"}</Text>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleRegister}
+                        disabled={loading}
+                    >
+                        <Text style={styles.buttonText}>
+                            {loading ? "Mohon Tunggu..." : "Register"}
+                        </Text>
                     </TouchableOpacity>
 
                     <View style={styles.footer}>

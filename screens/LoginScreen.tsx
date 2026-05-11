@@ -1,11 +1,10 @@
 import { colors } from "@/assets/color";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import type { RootStackParamList } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useState } from "react";
 import {
-    Alert,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -20,20 +19,13 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { login, loading, error } = useAuth();
-    const [username, setUsername] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
+    const { login, loading, error } = useAuthStore();
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
 
     const handleLogin = async () => {
-        if (!username || !password) {
-            Alert.alert("Error", "Masukan semua field yang ada!");
-            return;
-        }
-
-        const success = await login({ username, password });
-        if (!success && error) {
-            console.log("Login failed:", error);
-        }
+        if (!username.trim() || !password) return;
+        await login({ username: username.trim(), password });
     };
 
     return (
@@ -50,6 +42,7 @@ const LoginScreen: React.FC = () => {
                         placeholder="Masukan username anda"
                         placeholderTextColor={colors.textMuted}
                         autoCapitalize="none"
+                        returnKeyType="next"
                     />
 
                     <Text style={styles.label}>Password</Text>
@@ -61,9 +54,11 @@ const LoginScreen: React.FC = () => {
                         placeholderTextColor={colors.textMuted}
                         secureTextEntry
                         autoCapitalize="none"
+                        returnKeyType="done"
+                        onSubmitEditing={handleLogin}
                     />
 
-                    {error && (
+                    {!!error && (
                         <View style={styles.errorContainer}>
                             <Text style={styles.errorText}>{error}</Text>
                         </View>

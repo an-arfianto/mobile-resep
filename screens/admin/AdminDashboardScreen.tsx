@@ -1,32 +1,44 @@
 import { colors } from "@/assets/color";
-import { useAuth } from "@/context/AuthContext";
 import api from "@/services/api";
-import type { RootStackParamList } from "@/types";
+import { useAuthStore } from "@/stores/authStore";
+import type { AdminStats, RootStackParamList } from "@/types";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const AdminDashboardScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { user } = useAuth();
-    const [stats, setStats] = useState<any>(null);
+    const { user } = useAuthStore();
+
+    const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchStats = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
-            setError(null);
             const response = await api.admin.getStats();
             setStats(response.data);
-        } catch (err: any) {
-            if (err.cancelled) return;
-            setError(err.message || "Failed to load statistics");
+        } catch (err: unknown) {
+            const message =
+                typeof err === "object" && err !== null && "message" in err
+                    ? String((err as { message: unknown }).message)
+                    : "Gagal memuat statistik";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -34,9 +46,7 @@ const AdminDashboardScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
-            const controller = new AbortController();
             fetchStats();
-            return () => controller.abort();
         }, []),
     );
 
@@ -89,31 +99,48 @@ const AdminDashboardScreen: React.FC = () => {
 
                 <View style={styles.mainStatsContainer}>
                     <View style={styles.statsRow}>
-                        <View style={styles.statCard}>
-                            <Feather name="users" size={32} color={colors.primary} />
-                            <Text style={styles.statValue}>{stats?.totalUsers || 0}</Text>
-                            <Text style={styles.statLabel}>Total Users</Text>
-                        </View>
-
-                        <View style={styles.statCard}>
-                            <Feather name="book-open" size={32} color={colors.primary} />
-                            <Text style={styles.statValue}>{stats?.totalRecipes || 0}</Text>
-                            <Text style={styles.statLabel}>Total Resep</Text>
-                        </View>
+                        {[
+                            { icon: "users", value: stats?.totalUsers, label: "Total Users" },
+                            { icon: "book-open", value: stats?.totalRecipes, label: "Total Resep" },
+                        ].map(({ icon, value, label }) => (
+                            <View key={label} style={styles.statCard}>
+                                <Feather name={icon as any} size={28} color={colors.primary} />
+                                <Text style={styles.statValue}>{value ?? 0}</Text>
+                                <Text style={styles.statLabel}>{label}</Text>
+                            </View>
+                        ))}
                     </View>
-
                     <View style={styles.statsRow}>
-                        <View style={styles.statCard}>
-                            <Feather name="grid" size={32} color={colors.primary} />
-                            <Text style={styles.statValue}>{stats?.recipesByCategory?.length || 0}</Text>
-                            <Text style={styles.statLabel}>Kategori</Text>
-                        </View>
-
-                        <View style={styles.statCard}>
-                            <Feather name="clock" size={32} color={colors.primary} />
-                            <Text style={styles.statValue}>{stats?.pendingRecipes || 0}</Text>
-                            <Text style={styles.statLabel}>Pending</Text>
-                        </View>
+                        {[
+                            { icon: "clock", value: stats?.pendingRecipes, label: "Pending" },
+                            {
+                                icon: "check-circle",
+                                value: stats?.recipesByStatus?.approved,
+                                label: "Disetujui",
+                            },
+                        ].map(({ icon, value, label }) => (
+                            <View key={label} style={styles.statCard}>
+                                <Feather name={icon as any} size={28} color={colors.primary} />
+                                <Text style={styles.statValue}>{value ?? 0}</Text>
+                                <Text style={styles.statLabel}>{label}</Text>
+                            </View>
+                        ))}
+                    </View>
+                    <View style={styles.statsRow}>
+                        {[
+                            { icon: "user-x", value: stats?.suspendedUsers, label: "Disuspend" },
+                            {
+                                icon: "x-circle",
+                                value: stats?.recipesByStatus?.rejected,
+                                label: "Ditolak",
+                            },
+                        ].map(({ icon, value, label }) => (
+                            <View key={label} style={styles.statCard}>
+                                <Feather name={icon as any} size={28} color={colors.primary} />
+                                <Text style={styles.statValue}>{value ?? 0}</Text>
+                                <Text style={styles.statLabel}>{label}</Text>
+                            </View>
+                        ))}
                     </View>
                 </View>
 
@@ -128,7 +155,7 @@ const AdminDashboardScreen: React.FC = () => {
                                 <Feather name="users" size={28} color={colors.primary} />
                             </View>
                             <Text style={styles.actionTitle}>Kelola User</Text>
-                            <Text style={styles.actionDesc}>{stats?.totalUsers || 0} users</Text>
+                            <Text style={styles.actionDesc}>{stats?.totalUsers ?? 0} users</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -139,24 +166,10 @@ const AdminDashboardScreen: React.FC = () => {
                                 <Feather name="book-open" size={28} color={colors.primary} />
                             </View>
                             <Text style={styles.actionTitle}>Kelola Resep</Text>
-                            <Text style={styles.actionDesc}>{stats?.totalRecipes || 0} resep</Text>
+                            <Text style={styles.actionDesc}>{stats?.totalRecipes ?? 0} resep</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                {stats?.recipesByCategory && stats.recipesByCategory.length > 0 && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Resep per Kategori</Text>
-                        <View style={styles.categoriesGrid}>
-                            {stats.recipesByCategory.map((cat: any) => (
-                                <View key={cat.category} style={styles.categoryCard}>
-                                    <Text style={styles.categoryCount}>{cat.count}</Text>
-                                    <Text style={styles.categoryName}>{cat.category}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-                )}
             </ScrollView>
         </View>
     );

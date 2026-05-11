@@ -3,8 +3,17 @@ import RecipeCard from "@/components/RecipeCard";
 import api from "@/services/api";
 import type { Recipe, SearchCriteria, SearchResponse } from "@/types";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import Header from "../components/Header";
+import {
+    ActivityIndicator,
+    FlatList,
+    Keyboard,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import Header from "@/components/Header";
 
 const SearchScreen: React.FC = () => {
     const [operator, setOperator] = useState<"AND" | "OR" | "NOT">("OR");
@@ -14,14 +23,34 @@ const SearchScreen: React.FC = () => {
     const [searched, setSearched] = useState<boolean>(false);
     const [searchResult, setSearchResult] = useState<SearchResponse | null>(null);
 
+    const [ingredientsError, setIngredientsError] = useState<string>("");
+    const [excludedError, setExcludedError] = useState<string>("");
+    const [apiError, setApiError] = useState<string>("");
+
+    function handleOperatorChange(op: "AND" | "OR" | "NOT") {
+        setOperator(op);
+        setIngredientsError("");
+        setExcludedError("");
+        setApiError("");
+        if (op !== "NOT") {
+            setExcludedInput("");
+        }
+    }
+
     const handleSearch = async () => {
+        Keyboard.dismiss();
+
+        setIngredientsError("");
+        setExcludedError("");
+        setApiError("");
+
         const ingredients = ingredientsInput
             .split(",")
             .map((i) => i.trim())
             .filter(Boolean);
 
         if (ingredients.length === 0) {
-            alert("Masukan minimal 1 bahan");
+            setIngredientsError("Masukan minimal 1 bahan");
             return;
         }
 
@@ -38,7 +67,7 @@ const SearchScreen: React.FC = () => {
                 .filter(Boolean);
 
             if (excluded.length === 0) {
-                alert("Masukan bahan yang tidak diinginkan saat menggunakan NOT");
+                setExcludedError("Masukan bahan yang tidak diinginkan saat menggunakan NOT");
                 return;
             }
             searchData.excludedIngredients = excluded;
@@ -49,15 +78,21 @@ const SearchScreen: React.FC = () => {
             const result = await api.recipes.search(searchData);
             setSearchResult(result);
             setSearched(true);
-        } catch (err: any) {
-            if (err.cancelled) return;
-            alert(err.message);
+        } catch (err: unknown) {
+            const message =
+                typeof err === "object" && err !== null && "message" in err
+                    ? String((err as { message: unknown }).message)
+                    : "Terjadi kesalahan";
+            setApiError(message);
         } finally {
             setLoading(false);
         }
     };
 
-    const renderItem = useCallback(({ item }: { item: Recipe }) => <RecipeCard recipe={item} />, []);
+    const renderItem = useCallback(
+        ({ item }: { item: Recipe }) => <RecipeCard recipe={item} />,
+        [],
+    );
 
     const results: Recipe[] = searched && searchResult ? searchResult.data : [];
 
@@ -73,10 +108,18 @@ const SearchScreen: React.FC = () => {
                     {(["OR", "AND", "NOT"] as const).map((op) => (
                         <TouchableOpacity
                             key={op}
-                            style={[styles.operatorButton, operator === op && styles.operatorButtonActive]}
-                            onPress={() => setOperator(op)}
+                            style={[
+                                styles.operatorButton,
+                                operator === op && styles.operatorButtonActive,
+                            ]}
+                            onPress={() => handleOperatorChange(op)}
                         >
-                            <Text style={[styles.operatorText, operator === op && styles.operatorTextActive]}>
+                            <Text
+                                style={[
+                                    styles.operatorText,
+                                    operator === op && styles.operatorTextActive,
+                                ]}
+                            >
                                 {op}
                             </Text>
                         </TouchableOpacity>
@@ -85,24 +128,42 @@ const SearchScreen: React.FC = () => {
 
                 <Text style={styles.label}>Bahan (Gunakan koma sebagai pemisah antar bahan)</Text>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, !!ingredientsError && styles.inputError]}
                     value={ingredientsInput}
-                    onChangeText={setIngredientsInput}
+                    onChangeText={(v) => {
+                        setIngredientsInput(v);
+                        setIngredientsError("");
+                    }}
                     placeholder="e.g., ayam, nasi, kecap"
                     placeholderTextColor={colors.textMuted}
+                    returnKeyType="search"
+                    onSubmitEditing={handleSearch}
                 />
+                {!!ingredientsError && <Text style={styles.errorText}>{ingredientsError}</Text>}
 
                 {operator === "NOT" && (
                     <>
                         <Text style={styles.label}>Bahan yang tidak diinginkan</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, !!excludedError && styles.inputError]}
                             value={excludedInput}
-                            onChangeText={setExcludedInput}
+                            onChangeText={(v) => {
+                                setExcludedInput(v);
+                                setExcludedError("");
+                            }}
                             placeholder="e.g., babi, cabai, wine"
                             placeholderTextColor={colors.textMuted}
+                            returnKeyType="search"
+                            onSubmitEditing={handleSearch}
                         />
+                        {!!excludedError && <Text style={styles.errorText}>{excludedError}</Text>}
                     </>
+                )}
+
+                {!!apiError && (
+                    <View style={styles.apiErrorContainer}>
+                        <Text style={styles.errorText}>{apiError}</Text>
+                    </View>
                 )}
 
                 <TouchableOpacity
@@ -121,39 +182,49 @@ const SearchScreen: React.FC = () => {
             {searched && searchResult && (
                 <View style={styles.resultCard}>
                     <Text style={styles.resultText}>
-                        Ditemukan <Text style={styles.bold}>{searchResult.count}</Text> resep menggunakan{" "}
-                        <Text style={styles.bold}>{searchResult.operator}</Text> operator
+                        Ditemukan <Text style={styles.bold}>{searchResult.count}</Text> resep
+                        menggunakan <Text style={styles.bold}>{searchResult.operator}</Text>{" "}
+                        operator
                     </Text>
-                    <Text style={styles.resultDetail}>Bahan: {searchResult.searchedIngredients.join(", ")}</Text>
-                    {searchResult.excludedIngredients && searchResult.excludedIngredients.length > 0 && (
-                        <Text style={styles.resultDetail}>
-                            Dikecualikan: {searchResult.excludedIngredients.join(", ")}
-                        </Text>
-                    )}
+                    <Text style={styles.resultDetail}>
+                        Bahan: {searchResult.searchedIngredients.join(", ")}
+                    </Text>
+                    {searchResult.excludedIngredients &&
+                        searchResult.excludedIngredients.length > 0 && (
+                            <Text style={styles.resultDetail}>
+                                Dikecualikan: {searchResult.excludedIngredients.join(", ")}
+                            </Text>
+                        )}
                 </View>
             )}
 
-            <FlatList
-                data={results}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderItem}
-                ListEmptyComponent={
-                    searched && !loading ? (
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>Resep tidak ditemukan. Coba dengan bahan yang lain.</Text>
-                        </View>
-                    ) : null
-                }
-                ListFooterComponent={
-                    results.length > 0 ? (
-                        <View style={styles.footer}>
-                            <Text style={styles.footerText}>{results.length} resep ditemukan</Text>
-                        </View>
-                    ) : null
-                }
-                contentContainerStyle={styles.listContent}
-                keyboardShouldPersistTaps="handled"
-            />
+            {searched && (
+                <FlatList
+                    data={results}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderItem}
+                    ListEmptyComponent={
+                        !loading ? (
+                            <View style={styles.emptyContainer}>
+                                <Text style={styles.emptyText}>
+                                    Resep tidak ditemukan. Coba dengan bahan yang lain.
+                                </Text>
+                            </View>
+                        ) : null
+                    }
+                    ListFooterComponent={
+                        results.length > 0 ? (
+                            <View style={styles.footer}>
+                                <Text style={styles.footerText}>
+                                    {results.length} resep ditemukan
+                                </Text>
+                            </View>
+                        ) : null
+                    }
+                    contentContainerStyle={styles.listContent}
+                    keyboardShouldPersistTaps="handled"
+                />
+            )}
         </View>
     );
 };
@@ -209,15 +280,30 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         padding: 12,
         fontSize: 14,
-        marginBottom: 12,
+        marginBottom: 4,
         backgroundColor: colors.inputBackground,
         color: colors.textPrimary,
+    },
+    inputError: {
+        borderColor: colors.error,
+        marginBottom: 2,
+    },
+    errorText: {
+        fontSize: 12,
+        color: colors.error,
+    },
+    apiErrorContainer: {
+        backgroundColor: colors.errorSoft,
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 8,
     },
     searchButton: {
         backgroundColor: colors.primary,
         paddingVertical: 12,
         borderRadius: 8,
         alignItems: "center",
+        marginTop: 4,
     },
     searchButtonText: {
         color: colors.textInverse,

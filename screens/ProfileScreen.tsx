@@ -1,7 +1,9 @@
 import { colors } from "@/assets/color";
 import Header from "@/components/Header";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import api from "@/services/api";
+import { formatDate } from "@/utils/recipe";
+import type { ProfileData } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useState } from "react";
 import {
@@ -16,9 +18,15 @@ import {
     View,
 } from "react-native";
 
+const roleBadges: Record<number, { label: string; bg: string; text: string }> = {
+    1: { label: "Admin", bg: colors.errorSoft, text: colors.error },
+    2: { label: "User", bg: colors.primarySoft, text: colors.primary },
+};
+
 const ProfileScreen: React.FC = () => {
-    const { logout } = useAuth();
-    const [profile, setProfile] = useState<any>(null);
+    const { logout } = useAuthStore();
+
+    const [profile, setProfile] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -35,15 +43,18 @@ const ProfileScreen: React.FC = () => {
     const [passwordLoading, setPasswordLoading] = useState(false);
 
     const fetchProfile = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
-            setError(null);
             const response = await api.profile.getProfile();
             setProfile(response.data);
             setNewUsername(response.data.username);
-        } catch (err: any) {
-            if (err.cancelled) return;
-            setError(err.message || "Failed to load profile");
+        } catch (err: unknown) {
+            const message =
+                typeof err === "object" && err !== null && "message" in err
+                    ? String((err as { message: unknown }).message)
+                    : "Gagal memuat profil";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -51,9 +62,7 @@ const ProfileScreen: React.FC = () => {
 
     useFocusEffect(
         useCallback(() => {
-            const controller = new AbortController();
             fetchProfile();
-            return () => controller.abort();
         }, []),
     );
 
@@ -68,41 +77,35 @@ const ProfileScreen: React.FC = () => {
             "Keluar",
             "Anda yakin ingin keluar?",
             [
-                {
-                    text: "Batal",
-                    style: "cancel",
-                },
-                {
-                    text: "Keluar",
-                    style: "destructive",
-                    onPress: async () => {
-                        await logout();
-                    },
-                },
+                { text: "Batal", style: "cancel" },
+                { text: "Keluar", style: "destructive", onPress: logout },
             ],
             { cancelable: true },
         );
     };
 
-    const handleUpdateUsername = async () => {
-        if (!newUsername || newUsername.trim().length < 3) {
-            Alert.alert("Eror", "Username minimal 3 huruf");
+    const handleUpdateUsername = () => {
+        if (!newUsername.trim() || newUsername.trim().length < 3) {
+            Alert.alert("Error", "Username minimal 3 huruf");
             return;
         }
-
-        Alert.alert("Ubah Username", `Ganti username ke "${newUsername}"?`, [
+        Alert.alert("Ubah Username", `Ganti username ke "${newUsername.trim()}"?`, [
             { text: "Batal", style: "cancel" },
             {
                 text: "Ubah",
                 onPress: async () => {
+                    setUsernameLoading(true);
                     try {
-                        setUsernameLoading(true);
                         await api.profile.updateProfile(newUsername.trim());
-                        Alert.alert("Success", "Username telah diubah!");
+                        Alert.alert("Berhasil", "Username telah diubah!");
                         await fetchProfile();
                         setEditingUsername(false);
-                    } catch (err: any) {
-                        Alert.alert("Error", err.message || "Username gagal diubah");
+                    } catch (err: unknown) {
+                        const message =
+                            typeof err === "object" && err !== null && "message" in err
+                                ? String((err as { message: unknown }).message)
+                                : "Username gagal diubah";
+                        Alert.alert("Error", message);
                     } finally {
                         setUsernameLoading(false);
                     }
@@ -112,58 +115,42 @@ const ProfileScreen: React.FC = () => {
     };
 
     const handleUpdatePassword = async () => {
-        if (!currentPassword || !newPassword) {
-            Alert.alert("Error", "Isi semua kolom password yang tersedia");
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Alert.alert("Error", "Isi semua kolom password");
             return;
         }
-
         if (newPassword !== confirmPassword) {
-            Alert.alert("Error", "Passwords tidak cocok");
+            Alert.alert("Error", "Password tidak cocok");
             return;
         }
-
         if (newPassword.length < 6) {
             Alert.alert("Error", "Password minimal 6 huruf");
             return;
         }
 
+        setPasswordLoading(true);
         try {
-            setPasswordLoading(true);
             await api.profile.updatePassword(currentPassword, newPassword);
-            Alert.alert("Success", "Password telah diubah");
+            Alert.alert("Berhasil", "Password telah diubah!");
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
             setEditingPassword(false);
-        } catch (err: any) {
-            Alert.alert("Error", err.message || "Password gagal diubah");
+        } catch (err: unknown) {
+            const message =
+                typeof err === "object" && err !== null && "message" in err
+                    ? String((err as { message: unknown }).message)
+                    : "Password gagal diubah";
+            Alert.alert("Error", message);
         } finally {
             setPasswordLoading(false);
         }
     };
 
-    const getRoleBadge = () => {
-        if (profile?.role_id === 1) {
-            return { label: "Admin", bg: colors.errorSoft, text: colors.error };
-        }
-        if (profile?.role_id === 2) {
-            return { label: "Moderator", bg: colors.secondarySoft, text: colors.secondary };
-        }
-        return { label: "User", bg: colors.primarySoft, text: colors.primary };
-    };
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("id-ID", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        });
-    };
+    const roleBadge = roleBadges[profile?.role_id ?? 2] ?? roleBadges[2];
 
     const isAdmin = profile?.role_id === 1;
-    const isModerator = profile?.role_id === 2;
-    const isRegularUser = profile?.role_id === 3;
+    const isRegularUser = profile?.role_id === 2;
 
     if (loading && !refreshing) {
         return (
@@ -190,27 +177,22 @@ const ProfileScreen: React.FC = () => {
         );
     }
 
-    const roleBadge = getRoleBadge();
-
     return (
         <View style={styles.container}>
             <Header title="Profil Saya" />
 
             <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === "info" && styles.tabActive]}
-                    onPress={() => setActiveTab("info")}
-                >
-                    <Text style={[styles.tabText, activeTab === "info" && styles.tabTextActive]}>Info Profil</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === "settings" && styles.tabActive]}
-                    onPress={() => setActiveTab("settings")}
-                >
-                    <Text style={[styles.tabText, activeTab === "settings" && styles.tabTextActive]}>
-                        Pengaturan Akun
-                    </Text>
-                </TouchableOpacity>
+                {(["info", "settings"] as const).map((tab) => (
+                    <TouchableOpacity
+                        key={tab}
+                        style={[styles.tab, activeTab === tab && styles.tabActive]}
+                        onPress={() => setActiveTab(tab)}
+                    >
+                        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                            {tab === "info" ? "Info Profil" : "Pengaturan Akun"}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             <ScrollView
@@ -229,107 +211,63 @@ const ProfileScreen: React.FC = () => {
                     <>
                         <View style={styles.profileHeader}>
                             <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{profile?.username?.charAt(0).toUpperCase()}</Text>
+                                <Text style={styles.avatarText}>
+                                    {profile?.username?.charAt(0).toUpperCase()}
+                                </Text>
                             </View>
                             <Text style={styles.username}>{profile?.username}</Text>
                             <View style={[styles.roleBadge, { backgroundColor: roleBadge.bg }]}>
-                                <Text style={[styles.roleBadgeText, { color: roleBadge.text }]}>{roleBadge.label}</Text>
+                                <Text style={[styles.roleBadgeText, { color: roleBadge.text }]}>
+                                    {roleBadge.label}
+                                </Text>
                             </View>
-                            <Text style={styles.memberSince}>Bergabung {formatDate(profile?.created_at)}</Text>
+                            <Text style={styles.memberSince}>
+                                Bergabung{" "}
+                                {profile?.created_at ? formatDate(profile.created_at) : "-"}
+                            </Text>
                         </View>
 
                         {isAdmin && (
                             <View style={styles.adminInfoCard}>
-                                <Text style={styles.adminInfoText}>Anda adalah admin dengan akses penuh ke sistem</Text>
+                                <Text style={styles.adminInfoText}>
+                                    Anda adalah admin dengan akses penuh ke sistem
+                                </Text>
                             </View>
-                        )}
-
-                        {isModerator && (
-                            <>
-                                <View style={styles.statsCard}>
-                                    <Text style={styles.sectionTitle}>Aktivitas Moderasi</Text>
-                                    <View style={styles.statsGrid}>
-                                        <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: colors.primary }]}>
-                                                {profile?.reviewed_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Total Review</Text>
-                                        </View>
-                                        <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: colors.success }]}>
-                                                {profile?.approved_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Disetujui</Text>
-                                        </View>
-                                        <View style={styles.statItem}>
-                                            <Text style={[styles.statValue, { color: colors.error }]}>
-                                                {profile?.rejected_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Ditolak</Text>
-                                        </View>
-                                    </View>
-                                </View>
-
-                                <View style={styles.statsCard}>
-                                    <Text style={styles.sectionTitle}>Resep Saya</Text>
-                                    <View style={styles.statsGrid2x2}>
-                                        <View style={styles.statItem2x2}>
-                                            <Text style={[styles.statValue, { color: colors.primary }]}>
-                                                {profile?.my_recipe_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Total Resep</Text>
-                                        </View>
-                                        <View style={styles.statItem2x2}>
-                                            <Text style={[styles.statValue, { color: colors.success }]}>
-                                                {profile?.my_approved_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Disetujui</Text>
-                                        </View>
-                                        <View style={styles.statItem2x2}>
-                                            <Text style={[styles.statValue, { color: colors.warning }]}>
-                                                {profile?.my_pending_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Menunggu Review</Text>
-                                        </View>
-                                        <View style={styles.statItem2x2}>
-                                            <Text style={[styles.statValue, { color: colors.error }]}>
-                                                {profile?.my_rejected_count || 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Ditolak</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            </>
                         )}
 
                         {isRegularUser && (
                             <View style={styles.statsCard}>
                                 <Text style={styles.sectionTitle}>Statistik Resep</Text>
                                 <View style={styles.statsGrid2x2}>
-                                    <View style={styles.statItem2x2}>
-                                        <Text style={[styles.statValue, { color: colors.primary }]}>
-                                            {profile?.recipe_count || 0}
-                                        </Text>
-                                        <Text style={styles.statLabel}>Total Resep</Text>
-                                    </View>
-                                    <View style={styles.statItem2x2}>
-                                        <Text style={[styles.statValue, { color: colors.success }]}>
-                                            {profile?.approved_count || 0}
-                                        </Text>
-                                        <Text style={styles.statLabel}>Disetujui</Text>
-                                    </View>
-                                    <View style={styles.statItem2x2}>
-                                        <Text style={[styles.statValue, { color: colors.warning }]}>
-                                            {profile?.pending_count || 0}
-                                        </Text>
-                                        <Text style={styles.statLabel}>Pending</Text>
-                                    </View>
-                                    <View style={styles.statItem2x2}>
-                                        <Text style={[styles.statValue, { color: colors.error }]}>
-                                            {profile?.rejected_count || 0}
-                                        </Text>
-                                        <Text style={styles.statLabel}>Ditolak</Text>
-                                    </View>
+                                    {[
+                                        {
+                                            label: "Total",
+                                            value: profile?.recipe_count,
+                                            color: colors.textPrimary,
+                                        },
+                                        {
+                                            label: "Disetujui",
+                                            value: profile?.approved_count,
+                                            color: colors.success,
+                                        },
+                                        {
+                                            label: "Ditolak",
+                                            value: profile?.rejected_count,
+                                            color: colors.error,
+                                        },
+                                        {
+                                            label: "Pending",
+                                            value: profile?.pending_count,
+                                            color: colors.warning,
+                                        },
+                                    ].map(({ label, value, color }) => (
+                                        <View key={label} style={styles.statItem2x2}>
+                                            <Text style={[styles.statValue, { color }]}>
+                                                {value || 0}
+                                            </Text>
+                                            <Text style={styles.statLabel}>{label}</Text>
+                                        </View>
+                                    ))}
                                 </View>
                             </View>
                         )}
@@ -338,17 +276,18 @@ const ProfileScreen: React.FC = () => {
 
                 {activeTab === "settings" && (
                     <>
+                        {/* Username */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Username</Text>
                                 {!editingUsername && (
                                     <TouchableOpacity onPress={() => setEditingUsername(true)}>
-                                        <Text style={styles.editButton}>Ubah</Text>
+                                        <Text style={styles.editButton}>Edit</Text>
                                     </TouchableOpacity>
                                 )}
                             </View>
                             {editingUsername ? (
-                                <View>
+                                <>
                                     <TextInput
                                         style={styles.input}
                                         value={newUsername}
@@ -362,29 +301,31 @@ const ProfileScreen: React.FC = () => {
                                             style={styles.cancelButton}
                                             onPress={() => {
                                                 setEditingUsername(false);
-                                                setNewUsername(profile?.username);
+                                                setNewUsername(profile?.username ?? "");
                                             }}
                                         >
                                             <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
-                                            style={styles.saveButton}
+                                            style={[
+                                                styles.saveButton,
+                                                usernameLoading && { opacity: 0.6 },
+                                            ]}
                                             onPress={handleUpdateUsername}
                                             disabled={usernameLoading}
                                         >
-                                            {usernameLoading ? (
-                                                <ActivityIndicator color={colors.textInverse} />
-                                            ) : (
-                                                <Text style={styles.saveButtonText}>Simpan</Text>
-                                            )}
+                                            <Text style={styles.saveButtonText}>
+                                                {usernameLoading ? "Menyimpan..." : "Simpan"}
+                                            </Text>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
+                                </>
                             ) : (
                                 <Text style={styles.currentValue}>{profile?.username}</Text>
                             )}
                         </View>
 
+                        {/* Password */}
                         <View style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.sectionTitle}>Password</Text>
@@ -395,7 +336,7 @@ const ProfileScreen: React.FC = () => {
                                 )}
                             </View>
                             {editingPassword ? (
-                                <View>
+                                <>
                                     <TextInput
                                         style={styles.input}
                                         value={currentPassword}
@@ -433,24 +374,29 @@ const ProfileScreen: React.FC = () => {
                                             <Text style={styles.cancelButtonText}>Batal</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
-                                            style={styles.saveButton}
+                                            style={[
+                                                styles.saveButton,
+                                                passwordLoading && { opacity: 0.6 },
+                                            ]}
                                             onPress={handleUpdatePassword}
                                             disabled={passwordLoading}
                                         >
-                                            {passwordLoading ? (
-                                                <ActivityIndicator color={colors.textInverse} />
-                                            ) : (
-                                                <Text style={styles.saveButtonText}>Simpan</Text>
-                                            )}
+                                            <Text style={styles.saveButtonText}>
+                                                {passwordLoading ? "Menyimpan..." : "Simpan"}
+                                            </Text>
                                         </TouchableOpacity>
                                     </View>
-                                </View>
+                                </>
                             ) : (
                                 <Text style={styles.currentValue}>••••••••</Text>
                             )}
                         </View>
 
-                        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+                        <TouchableOpacity
+                            style={styles.logoutButton}
+                            onPress={handleLogout}
+                            activeOpacity={0.8}
+                        >
                             <Text style={styles.logoutButtonText}>Keluar</Text>
                         </TouchableOpacity>
                     </>

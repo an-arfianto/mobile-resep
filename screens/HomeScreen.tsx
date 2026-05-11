@@ -1,8 +1,8 @@
 import { colors } from "@/assets/color";
 import RecipeCard from "@/components/RecipeCard";
-import { useAuth } from "@/context/AuthContext";
-import api from "@/services/api";
-import type { Recipe, RootStackParamList } from "@/types";
+import { useAuthStore } from "@/stores/authStore";
+import { useRecipeStore } from "@/stores/recipeStore";
+import type { RootStackParamList } from "@/types";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import React, { useCallback, useState } from "react";
@@ -12,51 +12,27 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const HomeScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const { isAuthenticated } = useAuth();
-    const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [refreshing, setRefreshing] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
+    const { isAuthenticated } = useAuthStore();
+    const { recipes, loading, error, showAllRecipes } = useRecipeStore();
 
+    const [refreshing, setRefreshing] = useState(false);
     const [displayCount, setDisplayCount] = useState(10);
-    const itemsPerPage = 10;
+
+    const displayed = recipes.slice(0, displayCount);
     const hasMore = displayCount < recipes.length;
-
-    const fetchRecipes = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const response = await api.recipes.getAll();
-            setRecipes(Array.isArray(response.data) ? response.data : [response.data]);
-            setDisplayCount(10);
-        } catch (err: any) {
-            if (err.cancelled) return;
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const onRefresh = useCallback(async () => {
-        setRefreshing(true);
-        await fetchRecipes();
-        setRefreshing(false);
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
-            const controller = new AbortController();
-            fetchRecipes();
-            return () => controller.abort();
+            showAllRecipes();
+            setDisplayCount(10);
         }, []),
     );
 
-    const handleLoadMore = () => {
-        if (!hasMore) return;
-        setDisplayCount((prev) => Math.min(prev + itemsPerPage, recipes.length));
-    };
-
-    const displayedRecipes = recipes.slice(0, displayCount);
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await showAllRecipes();
+        setRefreshing(false);
+    }, []);
 
     const ListHeader = () => (
         <>
@@ -75,39 +51,18 @@ const HomeScreen: React.FC = () => {
         </>
     );
 
-    const ListFooter = () => {
-        if (loading && !refreshing) return null;
-        if (hasMore) {
-            return (
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Memuat {displayCount} dari {recipes.length} resep
-                    </Text>
-                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
-                </View>
-            );
-        }
-        return (
-            <View style={styles.footer}>
-                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
-            </View>
-        );
-    };
-
     const ListEmpty = () => {
-        if (loading && !refreshing) {
+        if (loading && !refreshing)
             return <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />;
-        }
-        if (error) {
+        if (error)
             return (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.retryButton} onPress={fetchRecipes}>
+                    <TouchableOpacity style={styles.retryButton} onPress={() => showAllRecipes()}>
                         <Text style={styles.retryButtonText}>Coba lagi</Text>
                     </TouchableOpacity>
                 </View>
             );
-        }
         return (
             <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>Tidak ada resep.</Text>
@@ -120,13 +75,33 @@ const HomeScreen: React.FC = () => {
         );
     };
 
+    const ListFooter = () => {
+        if (loading && !refreshing) return null;
+        if (hasMore)
+            return (
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Memuat {displayCount} dari {recipes.length} resep
+                    </Text>
+                    <ActivityIndicator color={colors.primary} style={styles.footerLoader} />
+                </View>
+            );
+        return (
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Menampilkan semua {recipes.length} resep</Text>
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             <FlatList
-                data={displayedRecipes}
+                data={displayed}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => <RecipeCard recipe={item} />}
-                onEndReached={handleLoadMore}
+                onEndReached={() => {
+                    if (hasMore) setDisplayCount((prev) => Math.min(prev + 10, recipes.length));
+                }}
                 onEndReachedThreshold={0.3}
                 refreshControl={
                     <RefreshControl

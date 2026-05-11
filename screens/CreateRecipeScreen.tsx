@@ -1,5 +1,6 @@
 import { colors } from "@/assets/color";
-import api from "@/services/api";
+import { units, categories } from "@/utils/recipe";
+import { useRecipeStore } from "@/stores/recipeStore";
 import type { Ingredient, RootStackParamList } from "@/types";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation } from "@react-navigation/native";
@@ -19,90 +20,63 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const UNITS = [
-    { label: "Berat", value: "" },
-    { label: "g (gram)", value: "g" },
-    { label: "kg (kilogram)", value: "kg" },
-    { label: "ml (mililiter)", value: "ml" },
-    { label: "l (liter)", value: "l" },
-    { label: "cup (cangkir)", value: "cup" },
-    { label: "sdm (sendok makan)", value: "sdm" },
-    { label: "sdt (sendok teh)", value: "sdt" },
-    { label: "butir", value: "butir" },
-    { label: "buah", value: "buah" },
-    { label: "siung", value: "siung" },
-    { label: "batang", value: "batang" },
-    { label: "lembar", value: "lembar" },
-    { label: "potong", value: "potong" },
-    { label: "jumput", value: "jumput" },
-    { label: "secukupnya", value: "secukupnya" },
-];
+const emptyIng: Ingredient = { name: "", quantity: null, unit: "" };
 
 const CreateRecipeScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
-    const [loading, setLoading] = useState<boolean>(false);
-    const [name, setName] = useState<string>("");
-    const [category, setCategory] = useState<string>("");
-    const [description, setDescription] = useState<string>("");
-    const [instructions, setInstructions] = useState<string>("");
-    const [ingredients, setIngredients] = useState<Ingredient[]>([{ name: "", quantity: null, unit: "" }]);
+    const { createRecipe, loading } = useRecipeStore();
 
-    const addIngredient = () => {
-        setIngredients([...ingredients, { name: "", quantity: null, unit: "" }]);
-    };
+    const [name, setName] = useState("");
+    const [category, setCategory] = useState("");
+    const [description, setDescription] = useState("");
+    const [instructions, setInstructions] = useState("");
+    const [ingredients, setIngredients] = useState<Ingredient[]>([{ ...emptyIng }]);
+
+    const addIngredient = () => setIngredients((prev) => [...prev, { ...emptyIng }]);
 
     const removeIngredient = (index: number) => {
-        if (ingredients.length > 1) {
-            setIngredients(ingredients.filter((_, i) => i !== index));
-        }
+        if (ingredients.length > 1) setIngredients((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const updateIngredient = (index: number, field: keyof Ingredient, value: any) => {
-        const updated = [...ingredients];
-        updated[index] = { ...updated[index], [field]: value };
-        setIngredients(updated);
+    const updateIngredient = (index: number, field: keyof Ingredient, value: string | null) => {
+        setIngredients((prev) => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
     };
 
     const handleSubmit = async () => {
-        if (!name || !category || !instructions) {
-            Alert.alert("Error", "Isi semua field yang ada!");
+        if (!name.trim() || !category || !instructions.trim()) {
+            Alert.alert("Error", "Isi semua field yang wajib diisi!");
             return;
         }
 
         const validIngredients = ingredients.filter((i) => i.name.trim() !== "");
-
         if (validIngredients.length === 0) {
             Alert.alert("Error", "Isi minimal 1 bahan!");
             return;
         }
 
-        try {
-            setLoading(true);
-            const result = await api.recipes.create({
-                name,
-                category,
-                description,
-                instructions,
-                ingredients: validIngredients,
-            });
+        const result = await createRecipe({
+            name: name.trim(),
+            category,
+            description: description.trim(),
+            instructions: instructions.trim(),
+            ingredients: validIngredients,
+        });
 
-            const recipeData = result.data as any;
-            Alert.alert("Success", "Resep telah ditambah!", [
-                {
-                    text: "OK",
-                    onPress: () => navigation.navigate("RecipeDetail", { recipeId: recipeData.id }),
-                },
-            ]);
-        } catch (err: any) {
-            Alert.alert("Error", err.message);
-        } finally {
-            setLoading(false);
-        }
+        if (!result) return;
+
+        const recipe = Array.isArray(result.data) ? result.data[0] : result.data;
+        Alert.alert("Berhasil", "Resep telah ditambah!", [
+            { text: "OK", onPress: () => navigation.navigate("RecipeDetail", { recipeId: recipe.id }) },
+        ]);
     };
 
     return (
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <ScrollView style={styles.scrollView}>
+            <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
                 <View style={styles.card}>
                     <Text style={styles.title}>Tambah Resep Baru</Text>
 
@@ -111,7 +85,7 @@ const CreateRecipeScreen: React.FC = () => {
                         style={styles.input}
                         value={name}
                         onChangeText={setName}
-                        placeholder="e.g., Ayam bakar, Nasi Goreng..."
+                        placeholder="e.g., Ayam Bakar, Nasi Goreng..."
                         placeholderTextColor={colors.textMuted}
                     />
 
@@ -119,14 +93,9 @@ const CreateRecipeScreen: React.FC = () => {
                     <View style={styles.pickerContainer}>
                         <Picker selectedValue={category} onValueChange={setCategory} style={styles.picker}>
                             <Picker.Item label="Pilih Kategori" value="" />
-                            <Picker.Item label="Masakan Utama" value="Masakan Utama" />
-                            <Picker.Item label="Makanan Pembuka" value="Makanan Pembuka" />
-                            <Picker.Item label="Makanan Penutup" value="Makanan Penutup" />
-                            <Picker.Item label="Salad" value="Salad" />
-                            <Picker.Item label="Kue" value="Kue" />
-                            <Picker.Item label="Sup" value="Sup" />
-                            <Picker.Item label="Minuman" value="Minuman" />
-                            <Picker.Item label="Cemilan" value="Cemilan" />
+                            {categories.map((c) => (
+                                <Picker.Item key={c} label={c} value={c} />
+                            ))}
                         </Picker>
                     </View>
 
@@ -146,20 +115,20 @@ const CreateRecipeScreen: React.FC = () => {
                         <View key={index} style={styles.ingredientRow}>
                             <TextInput
                                 style={[styles.input, styles.qtyInput]}
-                                value={ingredient.quantity?.toString() || ""}
-                                onChangeText={(text) => updateIngredient(index, "quantity", text)}
-                                placeholder="Jumlah"
+                                value={ingredient.quantity?.toString() ?? ""}
+                                onChangeText={(text) => updateIngredient(index, "quantity", text || null)}
+                                placeholder="Qty"
                                 placeholderTextColor={colors.textMuted}
                                 keyboardType="decimal-pad"
                             />
                             <View style={[styles.pickerContainer, styles.unitPicker]}>
                                 <Picker
-                                    selectedValue={ingredient.unit || ""}
+                                    selectedValue={ingredient.unit ?? ""}
                                     onValueChange={(value) => updateIngredient(index, "unit", value)}
                                     style={styles.picker}
                                 >
-                                    {UNITS.map((unit) => (
-                                        <Picker.Item key={unit.value} label={unit.label} value={unit.value} />
+                                    {units.map((u) => (
+                                        <Picker.Item key={u.value} label={u.label} value={u.value} />
                                     ))}
                                 </Picker>
                             </View>
@@ -187,7 +156,7 @@ const CreateRecipeScreen: React.FC = () => {
                         style={[styles.input, styles.textArea]}
                         value={instructions}
                         onChangeText={setInstructions}
-                        placeholder="Jelaskan instuksi pembuatannya (e.g., 1. 2. 3. dst)..."
+                        placeholder="1. Langkah pertama&#10;2. Langkah kedua..."
                         placeholderTextColor={colors.textMuted}
                         multiline
                         numberOfLines={6}
@@ -201,7 +170,7 @@ const CreateRecipeScreen: React.FC = () => {
                             <Text style={styles.cancelButtonText}>Batal</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.button, styles.submitButton]}
+                            style={[styles.button, styles.submitButton, loading && { opacity: 0.6 }]}
                             onPress={handleSubmit}
                             disabled={loading}
                         >
@@ -213,8 +182,6 @@ const CreateRecipeScreen: React.FC = () => {
         </KeyboardAvoidingView>
     );
 };
-
-const INPUT_HEIGHT = 48;
 
 const styles = StyleSheet.create({
     container: {
@@ -243,7 +210,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     input: {
-        height: INPUT_HEIGHT,
+        height: 48,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
@@ -261,7 +228,7 @@ const styles = StyleSheet.create({
         textAlignVertical: "top",
     },
     pickerContainer: {
-        height: INPUT_HEIGHT,
+        height: 48,
         borderWidth: 1,
         borderColor: colors.border,
         borderRadius: 8,
@@ -271,7 +238,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     picker: {
-        height: INPUT_HEIGHT,
+        height: 48,
         color: colors.textPrimary,
     },
     ingredientRow: {
