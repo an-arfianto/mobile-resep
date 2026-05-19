@@ -66,6 +66,9 @@ export default {
         getById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
             api.get(`/recipes/${id}`, { signal }),
 
+        getMyRecipeById: (id: number, signal?: AbortSignal): Promise<RecipeResponse> =>
+            api.get(`/recipes/${id}/edit`, { signal }),
+
         search: (data: SearchCriteria): Promise<SearchResponse> => api.post("/search", data),
 
         create: (data: CreateRecipeData): Promise<RecipeResponse> => api.post("/recipes", data),

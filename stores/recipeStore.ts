@@ -77,16 +77,9 @@ export const useRecipeStore = create<RecipeState>((set, get) => ({
     },
 
     showMyRecipe: async (id) => {
-        const { myRecipes } = get();
-        const cached = myRecipes.find((r) => r.id === id);
-        if (cached) {
-            set({ currentRecipe: cached });
-            return;
-        }
         await withLoading(set, async () => {
-            const response = await api.recipes.getMy();
-            const all = Array.isArray(response.data) ? response.data : [response.data];
-            set({ myRecipes: all, currentRecipe: all.find((r) => r.id === id) ?? null });
+            const response = await api.recipes.getMyRecipeById(id);
+            set({ currentRecipe: response.data as Recipe });
         });
     },
 
