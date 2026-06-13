@@ -18,13 +18,21 @@ import {
 } from "react-native";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TabKey = "all" | RecipeStatus;
+
+const TABS: { key: TabKey; label: string }[] = [
+    { key: "all", label: "Semua" },
+    { key: "approved", label: "Disetujui" },
+    { key: "pending", label: "Pending" },
+    { key: "rejected", label: "Ditolak" },
+];
 
 const MyRecipesScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
     const { myRecipes, loading, error, showMyRecipes, deleteRecipe } = useRecipeStore();
 
     const [refreshing, setRefreshing] = useState(false);
-    const [statusFilter, setStatusFilter] = useState<"all" | RecipeStatus>("all");
+    const [activeTab, setActiveTab] = useState<TabKey>("all");
     const [displayCount, setDisplayCount] = useState(10);
 
     useFocusEffect(
@@ -39,8 +47,8 @@ const MyRecipesScreen: React.FC = () => {
         setRefreshing(false);
     }, []);
 
-    const handleFilterChange = (value: "all" | RecipeStatus) => {
-        setStatusFilter(value);
+    const handleTabChange = (tab: TabKey) => {
+        setActiveTab(tab);
         setDisplayCount(10);
     };
 
@@ -49,55 +57,10 @@ const MyRecipesScreen: React.FC = () => {
     };
 
     const filtered =
-        statusFilter === "all" ? myRecipes : myRecipes.filter((r) => r.status === statusFilter);
+        activeTab === "all" ? myRecipes : myRecipes.filter((r) => r.status === activeTab);
 
     const displayed = filtered.slice(0, displayCount);
     const hasMore = displayCount < filtered.length;
-
-    const counts = {
-        all: myRecipes.length,
-        approved: myRecipes.filter((r) => r.status === "approved").length,
-        pending: myRecipes.filter((r) => r.status === "pending").length,
-        rejected: myRecipes.filter((r) => r.status === "rejected").length,
-    };
-
-    const FilterButton = ({
-        label,
-        value,
-        count,
-    }: {
-        label: string;
-        value: "all" | RecipeStatus;
-        count: number;
-    }) => (
-        <TouchableOpacity
-            style={[styles.filterButton, statusFilter === value && styles.filterButtonActive]}
-            onPress={() => handleFilterChange(value)}
-        >
-            <Text
-                style={[
-                    styles.filterButtonText,
-                    statusFilter === value && styles.filterButtonTextActive,
-                ]}
-            >
-                {label}
-            </Text>
-            {count > 0 && (
-                <View
-                    style={[styles.filterBadge, statusFilter === value && styles.filterBadgeActive]}
-                >
-                    <Text
-                        style={[
-                            styles.filterBadgeText,
-                            statusFilter === value && styles.filterBadgeTextActive,
-                        ]}
-                    >
-                        {count}
-                    </Text>
-                </View>
-            )}
-        </TouchableOpacity>
-    );
 
     const ListEmpty = () => {
         if (loading && !refreshing) {
@@ -105,7 +68,7 @@ const MyRecipesScreen: React.FC = () => {
         }
         if (error) {
             return (
-                <View style={styles.errorContainer}>
+                <View style={styles.emptyContainer}>
                     <Text style={styles.errorText}>{error}</Text>
                     <TouchableOpacity style={styles.retryButton} onPress={showMyRecipes}>
                         <Text style={styles.retryButtonText}>Coba lagi</Text>
@@ -127,11 +90,32 @@ const MyRecipesScreen: React.FC = () => {
             );
         }
         return (
-            <View style={styles.emptyFilterContainer}>
-                <Text style={styles.emptyFilterText}>Tidak ada resep dengan filter ini.</Text>
+            <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>Tidak ada resep dengan filter ini.</Text>
             </View>
         );
     };
+
+    const ListHeader = () => (
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tabsContainer}
+            contentContainerStyle={styles.tabsContent}
+        >
+            {TABS.map((tab) => (
+                <TouchableOpacity
+                    key={tab.key}
+                    style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+                    onPress={() => handleTabChange(tab.key)}
+                >
+                    <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                        {tab.label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
+        </ScrollView>
+    );
 
     const ListFooter = () => {
         if (loading && !refreshing) return null;
@@ -165,20 +149,6 @@ const MyRecipesScreen: React.FC = () => {
                 </TouchableOpacity>
             </View>
 
-            {myRecipes.length > 0 && (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.filterContainer}
-                    contentContainerStyle={styles.filterContent}
-                >
-                    <FilterButton label="Semua" value="all" count={counts.all} />
-                    <FilterButton label="Disetujui" value="approved" count={counts.approved} />
-                    <FilterButton label="Pending" value="pending" count={counts.pending} />
-                    <FilterButton label="Ditolak" value="rejected" count={counts.rejected} />
-                </ScrollView>
-            )}
-
             <FlatList
                 data={displayed}
                 keyExtractor={(item) => item.id.toString()}
@@ -197,6 +167,7 @@ const MyRecipesScreen: React.FC = () => {
                         tintColor={colors.primary}
                     />
                 }
+                ListHeaderComponent={<ListHeader />}
                 ListEmptyComponent={<ListEmpty />}
                 ListFooterComponent={<ListFooter />}
                 contentContainerStyle={styles.content}
@@ -228,53 +199,33 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         fontSize: 14,
     },
-    filterContainer: {
-        backgroundColor: colors.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.divider,
-        maxHeight: 60,
+    tabsContainer: {
+        marginBottom: 4,
     },
-    filterContent: {
-        padding: 12,
+    tabsContent: {
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         gap: 8,
     },
-    filterButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 18,
+    tab: {
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20,
         backgroundColor: colors.surface,
-        marginRight: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
-    filterButtonActive: {
+    tabActive: {
         backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
-    filterButtonText: {
-        fontSize: 13,
+    tabText: {
+        fontSize: 14,
         fontWeight: "600",
-        color: colors.textPrimary,
+        color: colors.textSecondary,
     },
-    filterButtonTextActive: {
+    tabTextActive: {
         color: colors.textInverse,
-    },
-    filterBadge: {
-        backgroundColor: colors.overlay,
-        borderRadius: 10,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        marginLeft: 6,
-    },
-    filterBadgeActive: {
-        backgroundColor: colors.overlay,
-    },
-    filterBadgeText: {
-        fontSize: 11,
-        fontWeight: "700",
-        color: colors.textPrimary,
-    },
-    filterBadgeTextActive: {
-        color: colors.textPrimary,
     },
     content: {
         padding: 16,
@@ -283,35 +234,22 @@ const styles = StyleSheet.create({
     loader: {
         marginTop: 40,
     },
-    errorContainer: {
-        alignItems: "center",
-        marginTop: 40,
-    },
-    errorText: {
-        color: colors.error,
-        textAlign: "center",
-        fontSize: 14,
-        marginBottom: 16,
-    },
-    retryButton: {
-        backgroundColor: colors.error,
-        paddingHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: 8,
-    },
-    retryButtonText: {
-        color: colors.textInverse,
-        fontWeight: "600",
-    },
     emptyContainer: {
         alignItems: "center",
         marginTop: 60,
+        paddingHorizontal: 20,
     },
     emptyText: {
         fontSize: 16,
         color: colors.textPrimary,
         marginBottom: 20,
         textAlign: "center",
+    },
+    errorText: {
+        color: colors.error,
+        textAlign: "center",
+        fontSize: 14,
+        marginBottom: 16,
     },
     emptyButton: {
         backgroundColor: colors.primary,
@@ -324,14 +262,15 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         fontSize: 16,
     },
-    emptyFilterContainer: {
-        alignItems: "center",
-        marginTop: 60,
+    retryButton: {
+        backgroundColor: colors.error,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
     },
-    emptyFilterText: {
-        fontSize: 15,
-        color: colors.textPrimary,
-        textAlign: "center",
+    retryButtonText: {
+        color: colors.textInverse,
+        fontWeight: "600",
     },
     footer: {
         alignItems: "center",
