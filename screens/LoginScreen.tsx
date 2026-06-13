@@ -29,7 +29,10 @@ const LoginScreen: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.card}>
                     <Text style={styles.title}>Login</Text>
@@ -64,8 +67,14 @@ const LoginScreen: React.FC = () => {
                         </View>
                     )}
 
-                    <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-                        <Text style={styles.buttonText}>{loading ? "Mohon Tunggu..." : "Login"}</Text>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleLogin}
+                        disabled={loading}
+                    >
+                        <Text style={styles.buttonText}>
+                            {loading ? "Mohon Tunggu..." : "Login"}
+                        </Text>
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
